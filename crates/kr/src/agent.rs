@@ -1,4 +1,4 @@
-use crate::protocol::{Base64Buffer, RequestBody};
+use crate::protocol::{AuthenticateRequest, AuthenticateResponse, Base64Buffer, RequestBody};
 use crate::{client::Client, transport::Transport};
 use crate::{
     error::*,
@@ -32,7 +32,12 @@ eagre_asn1::der_sequence! {
 
 pub struct Agent<T> {
     pub client: Client<T>,
-    identities: Vec<Identity>,
+    identities: Vec<KryptonIdentity>,
+}
+
+struct KryptonIdentity {
+    id: Identity,
+    key_pair: SshFido2KeyPair,
 }
 
 impl<T> Agent<T> {
@@ -114,7 +119,8 @@ where
     T: Transport + Send + Sync,
 {
     async fn identities(&mut self) -> HandleResult<Response> {
-        Ok(Response::Identities(self.identities.clone()))
+        let ids = self.identities.iter().map(|id| id.id.clone()).collect();
+        Ok(Response::Identities(ids))
     }
 
     async fn add_identity(
@@ -149,9 +155,12 @@ where
         };
         let key_blob = identity.fmt_public_key()?;
 
-        self.identities.push(Identity {
-            key_blob,
-            key_comment: String::default(),
+        self.identities.push(KryptonIdentity {
+            id: Identity {
+                key_blob,
+                key_comment: String::default(),
+            },
+            key_pair: identity,
         });
 
         Ok(Response::Success)
@@ -175,24 +184,68 @@ where
          string    public key to be used for authentication
         */
 
-        let mut cursor = Cursor::new(data.clone());
-        let _session_id = read_data(&mut cursor)?;
-        let _req_id = cursor.read_u8()?;
-        let _user = read_string(&mut cursor)?;
-        let _service = read_string(&mut cursor)?;
-        let _ = read_string(&mut cursor);
-        let _ = cursor.read_u8()?;
-        let _alg_name = read_string(&mut cursor)?;
-        let _pubkey = read_data(&mut cursor)?;
+        // let mut cursor = Cursor::new(data.clone());
+        // let _session_id = read_data(&mut cursor)?;
+        // let _req_id = cursor.read_u8()?;
+        // let _user = read_string(&mut cursor)?;
+        // let _service = read_string(&mut cursor)?;
+        // let _ = read_string(&mut cursor);
+        // let _ = cursor.read_u8()?;
+        // let _alg_name = read_string(&mut cursor)?;
+        // let pub_key = read_data(&mut cursor)?;
 
-        // Ok(Response::SignResponse {
-        //     algo_name: String::from("ecdsa-sha2-nistp256"),
-        //     signature,
-        // })
+        // find the matching key pair ref
+        let id = self
+            .identities
+            .iter()
+            .filter(|id| id.id.key_blob.as_slice() == pubkey.as_slice())
+            .next()
+            .ok_or(Error::UnknownKey)?;
 
-        dbg!(data);
-        dbg!(pubkey);
-        dbg!(flags);
-        unimplemented!()
+        let challenge_hash = sodiumoxide::crypto::hash::sha256::hash(data.as_slice())
+            .0
+            .to_vec();
+
+        // get the signature
+        let resp: AuthenticateResponse = self
+            .client
+            .send_request(RequestBody::Authenticate(AuthenticateRequest {
+                challenge: Base64Buffer(challenge_hash),
+                rp_id: id.key_pair.application.clone(),
+                extensions: None,
+                key_handle: Some(Base64Buffer(id.key_pair.key_handle.clone())),
+                key_handles: None,
+            }))
+            .await?;
+
+        // parse the asn.1 signature into ssh format
+        let asn1_sig = ECDSASign::der_from_bytes(resp.signature.0)?;
+        let mut signature: Vec<u8> = Vec::new();
+        //write signR
+        signature.write_u32::<BigEndian>(asn1_sig.r.len() as u32)?;
+        signature.write_all(asn1_sig.r.as_slice())?;
+        //write signS
+        signature.write_u32::<BigEndian>(asn1_sig.s.len() as u32)?;
+        signature.write_all(asn1_sig.s.as_slice())?;
+
+        /*
+           string		"sk-ecdsa-sha2-nistp256@openssh.com"
+           string		ecdsa_signature
+           byte		    flags
+           uint32		counter
+        */
+        let mut data: Vec<u8> = vec![];
+
+        const SIG_TYPE_ID: &'static str = "sk-ecdsa-sha2-nistp256@openssh.com";
+        data.write_u32::<BigEndian>(SIG_TYPE_ID.len() as u32)?;
+        data.write_all(SIG_TYPE_ID.as_bytes())?;
+
+        data.write_u32::<BigEndian>(signature.len() as u32)?;
+        data.write_all(&signature)?;
+
+        data.write_u8(0x01)?;
+        data.write_u32::<BigEndian>(resp.counter)?;
+
+        Ok(Response::SignResponse { signature: data })
     }
 }

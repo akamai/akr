@@ -90,8 +90,8 @@ pub struct AuthenticateRequest {
     #[serde(rename = "app_id")]
     pub rp_id: String,
     pub extensions: Option<BTreeMap<String, serde_json::Value>>,
-    key_handle: Option<Base64Buffer>,
-    key_handles: Option<Vec<Base64Buffer>>,
+    pub key_handle: Option<Base64Buffer>,
+    pub key_handles: Option<Vec<Base64Buffer>>,
 }
 
 impl AuthenticateRequest {
@@ -179,6 +179,7 @@ pub struct AuthenticateResponse {
     pub signature: Base64Buffer,
     pub key_handle: Base64Buffer,
     pub user_handle: Option<Base64Buffer>,
+    #[serde(rename = "auth_data")]
     pub authenticator_data: Base64Buffer,
 }
 

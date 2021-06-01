@@ -147,10 +147,7 @@ pub enum Response {
     Success,
     Failure,
     Identities(Vec<Identity>),
-    SignResponse {
-        algo_name: String,
-        signature: Vec<u8>,
-    },
+    SignResponse { signature: Vec<u8> },
 }
 
 impl Response {
@@ -172,17 +169,15 @@ impl Response {
                     write_message(&mut buf, &identity.key_comment.as_bytes()).await?;
                 }
             }
-            Response::SignResponse {
-                ref algo_name,
-                ref signature,
-            } => {
+            Response::SignResponse { ref signature } => {
                 WriteBytesExt::write_u8(&mut buf, MessageResponse::AgentSignResponse as u8)?;
 
-                let mut full_sig = Vec::new();
-                write_message(&mut full_sig, algo_name.as_bytes()).await?;
-                write_message(&mut full_sig, signature).await?;
+                // let mut full_sig = Vec::new();
+                // write_message(&mut full_sig, algo_name.as_bytes()).await?;
+                // write_message(&mut full_sig, signature).await?;
 
-                write_message(&mut buf, full_sig.as_slice()).await?;
+                write_message(&mut buf, signature.as_slice()).await?;
+                // buf.write_all(signature.as_slice()).await?;
             }
         }
         stream.write_u32(buf.len() as u32).await?;

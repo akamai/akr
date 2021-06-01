@@ -174,9 +174,7 @@ async fn start_daemon() {
     }
     println!("binding to {}", pipe.display());
     let listener = UnixListener::bind(pipe);
-    let handler = agent::Agent::new(Client {
-        transport: AwsClient::new().expect("failed to create agent"),
-    });
+    let handler = agent::Agent::new(new_default_client().expect("failed to startup client"));
     ssh_agent::Agent::run(handler, listener.unwrap()).await;
 }
 
