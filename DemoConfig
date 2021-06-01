@@ -1,0 +1,6 @@
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_testkey2
+Host *
+    IdentityAgent /home/agrinman/.kr2/krypton-ssh-agent.sock

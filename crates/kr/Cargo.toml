@@ -1,0 +1,35 @@
+[package]
+name = "kr"
+version = "0.1.0"
+authors = ["Alex Grinman <me@alexgr.in>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = "3.0.0-beta.2"
+tokio = { version = "1.0", features = ["full"] }
+ssh_agent = { path = "../ssh-agent" }
+sodiumoxide = "0.2.6"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+async-trait = "0.1.42"
+base64 = "0.13.0"
+base64-serde = "0.6.1"
+directories = "3.0.1"
+serde_bytes =  "0.11.5"
+thiserror = "1.0"
+rusoto = "0.24"
+rusoto_core = "0.46.0"
+rusoto_sqs = "0.46.0"
+rusoto_sns = "0.46.0"
+futures = "0.3.8"
+chrono = "0.4.19"
+uuid = { version = "0.8", features = ["serde", "v4"] }
+env_logger = "0.8.2"
+byteorder = "1.3.4"
+whoami = "1.0.0"
+qr2term = "0.2.1"
+eagre-asn1 = "0.3.0"
+reqwest = { version = "0.11.0", features = ["json"] }
+pem = "0.8.3"

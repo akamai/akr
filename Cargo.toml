@@ -1,0 +1,7 @@
+[workspace]
+default-members = ["crates/kr"]
+
+members = [
+    "crates/kr",
+    "crates/ssh-agent"
+]

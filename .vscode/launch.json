@@ -1,0 +1,82 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "kr generate",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=kr",
+                    "--package=kr"
+                ],
+                "filter": {
+                    "name": "kr",
+                    "kind": "bin"
+                }
+            },
+            "args": ["generate", "--name", "testkey", "--path", "/home/agrinman/.ssh/id_testkey"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "kr start",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=kr",
+                    "--package=kr"
+                ],
+                "filter": {
+                    "name": "kr",
+                    "kind": "bin"
+                }
+            },
+            "args": ["start"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'kr'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=kr",
+                    "--package=kr"
+                ],
+                "filter": {
+                    "name": "kr",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'ssh_agent'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=ssh_agent"
+                ],
+                "filter": {
+                    "name": "ssh_agent",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
