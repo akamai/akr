@@ -49,70 +49,6 @@ impl<T> Agent<T> {
     }
 }
 
-// impl<T> Agent<T>
-// where
-//     T: Transport,
-// {
-//     async fn get_signature(
-//         &mut self,
-//         pubkey: Vec<u8>,
-//         data: Vec<u8>,
-//         host_auth: Vec<u8>,
-//         _flags: u32,
-//     ) -> Result<Vec<u8>, Error> {
-//         let id = StoredIdentity::load_from_disk()?;
-
-//         if id.ssh_public_key_wire.0.as_slice() == pubkey.as_slice() {
-//             let short_len = data.len() - pubkey.len() - 4;
-//             let short_data = data[..short_len].to_vec();
-
-//             let request = RequestBody::Sign(SignRequest {
-//                 data: Base64Buffer(short_data),
-//                 host_auth: Base64Buffer(host_auth),
-//                 public_key_fingerprint: Base64Buffer(
-//                     sodiumoxide::crypto::hash::sha256::hash(&pubkey).0.to_vec(),
-//                 ),
-//             });
-
-//             let response: SignResponse = self.client.send_request(request).await?;
-//             return Ok(response.signature.0);
-//         } else {
-//             for key in id
-//                 .key_op_list
-//                 .unwrap_or(KeyOpList {
-//                     public_keys: vec![],
-//                 })
-//                 .public_keys
-//             {
-//                 if pubkey.as_slice() != key.to_ssh_wire()?.as_slice() {
-//                     continue;
-//                 }
-
-//                 let request = RequestBody::KeyOp(KeyOpRequest {
-//                     data: data.into(),
-//                     key_id: key.key_id,
-//                     op: crate::protocol::KeyOp::Sign,
-//                 });
-
-//                 let response: KeyOpResponse = self.client.send_request(request).await?;
-
-//                 let asn1_sig = ECDSASign::der_from_bytes(response.result.0)?;
-//                 //sign that we would return
-//                 let mut signature: Vec<u8> = Vec::new();
-//                 //write signR
-//                 signature.write_u32::<BigEndian>(asn1_sig.r.len() as u32)?;
-//                 signature.write_all(asn1_sig.r.as_slice())?;
-//                 //write signS
-//                 signature.write_u32::<BigEndian>(asn1_sig.s.len() as u32)?;
-//                 signature.write_all(asn1_sig.s.as_slice())?;
-
-//                 return Ok(signature);
-//             }
-//         }
-
-//         Err(Error::UnknownKey)
-//     }
-// }
 #[async_trait]
 impl<T> SSHAgentHandler for Agent<T>
 where
@@ -172,7 +108,7 @@ where
         data: Vec<u8>,
         flags: u32,
     ) -> HandleResult<Response> {
-        /*
+        /* data:
          Packet Format (SSH_MSG_USERAUTH_REQUEST):
          string    session identifier
          byte      SSH_MSG_USERAUTH_REQUEST
@@ -184,47 +120,51 @@ where
          string    public key to be used for authentication
         */
 
-        // let mut cursor = Cursor::new(data.clone());
-        // let _session_id = read_data(&mut cursor)?;
-        // let _req_id = cursor.read_u8()?;
-        // let _user = read_string(&mut cursor)?;
-        // let _service = read_string(&mut cursor)?;
-        // let _ = read_string(&mut cursor);
-        // let _ = cursor.read_u8()?;
-        // let _alg_name = read_string(&mut cursor)?;
-        // let pub_key = read_data(&mut cursor)?;
-
-        // find the matching key pair ref
+        // try to find the matching key handle
         let id = self
             .identities
             .iter()
             .filter(|id| id.id.key_blob.as_slice() == pubkey.as_slice())
             .next()
-            .ok_or(Error::UnknownKey)?;
+            .map(|id| id);
+
+        let rp_id = if let Some(ref id) = &id {
+            id.key_pair.application.clone()
+        } else {
+            // parse the rp_id from the public key
+            SshFido2KeyPair::parse_application_from_public_key(pubkey)?
+        };
 
         let challenge_hash = sodiumoxide::crypto::hash::sha256::hash(data.as_slice())
             .0
             .to_vec();
 
-        // get the signature
+        // get the signature from the client
         let resp: AuthenticateResponse = self
             .client
             .send_request(RequestBody::Authenticate(AuthenticateRequest {
                 challenge: Base64Buffer(challenge_hash),
-                rp_id: id.key_pair.application.clone(),
+                rp_id,
                 extensions: None,
-                key_handle: Some(Base64Buffer(id.key_pair.key_handle.clone())),
+                key_handle: id
+                    .map(|id| id.key_pair.key_handle.clone())
+                    .map(Base64Buffer),
                 key_handles: None,
             }))
             .await?;
 
-        // parse the asn.1 signature into ssh format
+        /* parse the asn.1 signature into ssh format
+
+           ecdsa signature
+               mpint		r
+               mpint		s
+        */
         let asn1_sig = ECDSASign::der_from_bytes(resp.signature.0)?;
         let mut signature: Vec<u8> = Vec::new();
-        //write signR
+
         signature.write_u32::<BigEndian>(asn1_sig.r.len() as u32)?;
         signature.write_all(asn1_sig.r.as_slice())?;
-        //write signS
+
         signature.write_u32::<BigEndian>(asn1_sig.s.len() as u32)?;
         signature.write_all(asn1_sig.s.as_slice())?;
 
@@ -233,6 +173,8 @@ where
            string		ecdsa_signature
            byte		    flags
            uint32		counter
+
+           https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.u2f
         */
         let mut data: Vec<u8> = vec![];
 

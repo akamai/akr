@@ -1,8 +1,12 @@
 use byteorder::{BigEndian, WriteBytesExt};
 use pem::EncodeConfig;
-use std::io::Write;
+use std::io::{Cursor, Write};
 
-use crate::{error::Error, protocol::Base64Buffer};
+use crate::{
+    error::Error,
+    protocol::Base64Buffer,
+    util::{read_data, read_string},
+};
 
 /// Represents the key pair of a sk-ecdsa-sha2-nistp256
 /// Note the private key is not actually here, because it's hardware backed
@@ -122,6 +126,16 @@ impl SshFido2KeyPair {
         data.write_all(self.application.as_bytes())?;
 
         Ok(data)
+    }
+
+    /// extract the "application" string (rp id) from a wire format public key
+    pub fn parse_application_from_public_key(fmt_public_key: Vec<u8>) -> Result<String, Error> {
+        let mut buf = Cursor::new(fmt_public_key);
+        let _type = read_data(&mut buf)?;
+        let _curve = read_data(&mut buf)?;
+        let _pub = read_data(&mut buf)?;
+        let app = read_string(&mut buf)?;
+        Ok(app)
     }
 
     /// Format an SSH Private key

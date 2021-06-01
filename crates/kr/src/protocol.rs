@@ -167,9 +167,9 @@ pub struct IdData {
 pub struct RegisterResponse {
     pub public_key: Base64Buffer,
     pub key_handle: Base64Buffer,
-    pub attestation_certificate: Base64Buffer,
+    pub attestation_certificate: Option<Base64Buffer>,
     pub signature: Base64Buffer,
-    pub attestation_data: Base64Buffer,
+    pub attestation_data: Option<Base64Buffer>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -179,8 +179,8 @@ pub struct AuthenticateResponse {
     pub signature: Base64Buffer,
     pub key_handle: Base64Buffer,
     pub user_handle: Option<Base64Buffer>,
-    #[serde(rename = "auth_data")]
-    pub authenticator_data: Base64Buffer,
+    // #[serde(rename = "auth_data")]
+    // pub authenticator_data: Base64Buffer,
 }
 
 impl TryFrom<ResponseBody> for IdResponse {
