@@ -708,7 +708,6 @@ dependencies = [
  "eagre-asn1",
  "env_logger 0.8.3",
  "futures",
- "pem",
  "qr2term",
  "reqwest",
  "rusoto",
@@ -952,17 +951,6 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "winapi",
-]
-
-[[package]]
-name = "pem"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd56cbd21fea48d0c440b41cd69c589faacade08c992d9a54e471b79d0fd13eb"
-dependencies = [
- "base64",
- "once_cell",
- "regex 1.5.4",
 ]
 
 [[package]]

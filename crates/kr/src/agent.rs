@@ -1,10 +1,11 @@
 use crate::protocol::{AuthenticateRequest, AuthenticateResponse, Base64Buffer, RequestBody};
+use crate::ssh_format::SshWirePublicKey;
 use crate::{client::Client, transport::Transport};
 use crate::{
     error::*,
     util::{read_data, read_string},
 };
-use crate::{identity::StoredIdentity, ssh_format::SshFido2KeyPair};
+use crate::{identity::StoredIdentity, ssh_format::SshFido2KeyPairHandle};
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use eagre_asn1::der::DER;
@@ -13,6 +14,7 @@ use ssh_agent::error::HandleResult;
 use ssh_agent::Identity;
 use ssh_agent::Response;
 use ssh_agent::SSHAgentHandler;
+use std::collections::HashMap;
 use std::{
     io::{Cursor, Write},
     vec,
@@ -32,19 +34,14 @@ eagre_asn1::der_sequence! {
 
 pub struct Agent<T> {
     pub client: Client<T>,
-    identities: Vec<KryptonIdentity>,
-}
-
-struct KryptonIdentity {
-    id: Identity,
-    key_pair: SshFido2KeyPair,
+    identities: HashMap<SshWirePublicKey, SshFido2KeyPairHandle>,
 }
 
 impl<T> Agent<T> {
     pub fn new(client: Client<T>) -> Self {
         Agent {
             client,
-            identities: vec![],
+            identities: HashMap::new(),
         }
     }
 }
@@ -55,8 +52,27 @@ where
     T: Transport + Send + Sync,
 {
     async fn identities(&mut self) -> HandleResult<Response> {
-        let ids = self.identities.iter().map(|id| id.id.clone()).collect();
-        Ok(Response::Identities(ids))
+        let ids = StoredIdentity::load_from_disk()?.key_pair_handles;
+        self.identities = ids
+            .into_iter()
+            .map(|kp| Ok((kp.fmt_public_key()?, kp)))
+            .collect::<Result<Vec<_>, Error>>()?
+            .into_iter()
+            .collect();
+
+        let ids = self
+            .identities
+            .iter()
+            .map(|(pubkey, kp)| {
+                Ok(Identity {
+                    key_comment: kp.application.clone(),
+                    key_blob: pubkey.clone(),
+                })
+            })
+            .collect::<Result<Vec<Identity>, Error>>()
+            .map(Response::Identities)?;
+
+        Ok(ids)
     }
 
     async fn add_identity(
@@ -64,10 +80,10 @@ where
         key_type: String,
         key_blob: Vec<u8>,
     ) -> HandleResult<Response> {
-        if key_type.as_str() != SshFido2KeyPair::TYPE_ID {
-            return Err(format!("key type not supported: {}", &key_type))?;
+        if key_type.as_str() != SshFido2KeyPairHandle::TYPE_ID {
+            eprintln!("add error: not a fido2 ssh keypair");
+            return Ok(Response::Success);
         }
-
         /*
            string		curve name
            ec_point	Q
@@ -83,21 +99,13 @@ where
         let flags = cursor.read_u8()?;
         let key_handle = read_data(&mut cursor)?;
 
-        let identity = SshFido2KeyPair {
+        let identity = SshFido2KeyPairHandle {
             application,
             key_handle,
             public_key,
             flags,
         };
-        let key_blob = identity.fmt_public_key()?;
-
-        self.identities.push(KryptonIdentity {
-            id: Identity {
-                key_blob,
-                key_comment: String::default(),
-            },
-            key_pair: identity,
-        });
+        self.identities.insert(identity.fmt_public_key()?, identity);
 
         Ok(Response::Success)
     }
@@ -106,7 +114,7 @@ where
         &mut self,
         pubkey: Vec<u8>,
         data: Vec<u8>,
-        flags: u32,
+        _flags: u32,
     ) -> HandleResult<Response> {
         /* data:
          Packet Format (SSH_MSG_USERAUTH_REQUEST):
@@ -124,15 +132,15 @@ where
         let id = self
             .identities
             .iter()
-            .filter(|id| id.id.key_blob.as_slice() == pubkey.as_slice())
+            .filter(|(pk, _)| pk.as_slice() == pubkey.as_slice())
             .next()
-            .map(|id| id);
+            .map(|id| id.1);
 
         let rp_id = if let Some(ref id) = &id {
-            id.key_pair.application.clone()
+            id.application.clone()
         } else {
             // parse the rp_id from the public key
-            SshFido2KeyPair::parse_application_from_public_key(pubkey)?
+            SshFido2KeyPairHandle::parse_application_from_public_key(pubkey)?
         };
 
         let challenge_hash = sodiumoxide::crypto::hash::sha256::hash(data.as_slice())
@@ -146,9 +154,7 @@ where
                 challenge: Base64Buffer(challenge_hash),
                 rp_id,
                 extensions: None,
-                key_handle: id
-                    .map(|id| id.key_pair.key_handle.clone())
-                    .map(Base64Buffer),
+                key_handle: id.map(|id| id.key_handle.clone()).map(Base64Buffer),
                 key_handles: None,
             }))
             .await?;

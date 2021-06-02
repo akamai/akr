@@ -11,13 +11,16 @@ pub struct Opts {
 
 #[derive(Clap)]
 pub enum Command {
+    /// start the ssh-agent daemon
     Start,
+    /// pair with your phone/tablet
     Pair,
+    /// load keys from the Akamai MFA app on your phone/tablet
+    Load,
+    /// generate a new credential
     Generate {
+        /// a common name for the credential
         #[clap(long)]
         name: String,
-
-        #[clap(long)]
-        path: String,
     },
 }

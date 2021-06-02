@@ -22,20 +22,17 @@ use std::path::{Path, PathBuf};
 
 use tokio::net::UnixListener;
 
-use crate::{client::Client, error::Error};
-use crate::{
-    pairing::{Keypair, Os, Pairing, PairingQr},
-    ssh_format::SshFido2KeyPair,
+use crate::error::Error;
+use crate::protocol::{
+    Base64Buffer, IdRequest, IdResponse, Request, RequestBody, ResponseBody, PROTOCOL_VERSION,
 };
 use crate::{
-    protocol::{
-        Base64Buffer, IdRequest, IdResponse, Request, RequestBody, ResponseBody, PROTOCOL_VERSION,
-    },
-    util::set_user_protected_permissions,
+    pairing::{Keypair, Os, Pairing, PairingQr},
+    ssh_format::SshFido2KeyPairHandle,
 };
 
 use crate::identity::StoredIdentity;
-use crate::transport::{krypton_aws::AwsClient, Transport};
+use crate::transport::Transport;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -48,7 +45,8 @@ async fn main() -> Result<(), Error> {
     match opts.command {
         Command::Start => start_daemon().await,
         Command::Pair => pair().await?,
-        Command::Generate { name, path } => generate(name, path).await?,
+        Command::Generate { name } => generate(name).await?,
+        Command::Load => load_keys().await?,
     }
 
     Ok(())
@@ -76,7 +74,6 @@ async fn pair() -> Result<(), Error> {
         "https://mfa.akamai.com/#{}",
         base64::encode(serde_json::to_string(&qr)?)
     );
-    // qr2term::qr::Qr::from(raw)?.red
     qr2term::print_qr(raw).expect("failed to generate a qr code");
 
     let device_public_key = client
@@ -94,7 +91,9 @@ async fn pair() -> Result<(), Error> {
         device_name: String::new(),
     };
 
-    let request = Request::new(RequestBody::Id(IdRequest {}));
+    let request = Request::new(RequestBody::Id(IdRequest {
+        send_sk_accounts: true,
+    }));
     client
         .transport
         .send(None, queue_uuid, pairing.seal(&request)?)
@@ -111,13 +110,25 @@ async fn pair() -> Result<(), Error> {
         _ => return Err(Error::InvalidPairingHelloMessage),
     };
 
-    pairing.device_name = id_response.data.email;
+    pairing.device_name = id_response.data.device_name;
     pairing.aws_push_id = response.aws_push_id;
     pairing.device_token = response.device_token;
     pairing.store_to_disk()?;
 
     let id = StoredIdentity {
         device_id: Some(id_response.data.device_identifier),
+        key_pair_handles: id_response
+            .data
+            .sk_accounts
+            .unwrap_or(vec![])
+            .into_iter()
+            .map(|sk| SshFido2KeyPairHandle {
+                application: sk.rp_id,
+                key_handle: sk.key_handle.0,
+                flags: 0x01,
+                public_key: sk.public_key.0,
+            })
+            .collect(),
     };
 
     id.store_to_disk()?;
@@ -128,7 +139,7 @@ async fn pair() -> Result<(), Error> {
     Ok(())
 }
 
-async fn generate(name: String, path: String) -> Result<(), Error> {
+async fn generate(name: String) -> Result<(), Error> {
     let client = new_default_client()?;
     let name = format!("ssh:{}", name);
     let resp: RegisterResponse = client
@@ -141,70 +152,88 @@ async fn generate(name: String, path: String) -> Result<(), Error> {
         }))
         .await?;
 
-    let key_pair = SshFido2KeyPair {
+    let key_pair = SshFido2KeyPairHandle {
         application: name,
         key_handle: resp.key_handle.0,
         public_key: resp.public_key.0,
         flags: 0x01,
     };
 
-    let public = format!("{}\n", key_pair.authorized_public_key()?);
-    let pub_key_path = format!("{}.pub", &path);
-    std::fs::write(&pub_key_path, public.as_bytes())?;
-    set_user_protected_permissions(&pub_key_path)?;
+    StoredIdentity::store_key_pair_handle(&key_pair)?;
 
-    let private = key_pair.private_key_pem()?;
-    let priv_key_path = format!("{}", &path);
-    std::fs::write(&priv_key_path, private.as_bytes())?;
-    set_user_protected_permissions(&priv_key_path)?;
+    eprintln!("{}", key_pair.authorized_public_key()?);
+
+    Ok(())
+}
+
+async fn load_keys() -> Result<(), Error> {
+    let client = new_default_client()?;
+
+    let id_response: IdResponse = client
+        .send_request(RequestBody::Id(IdRequest {
+            send_sk_accounts: true,
+        }))
+        .await?;
+
+    let id = StoredIdentity {
+        device_id: Some(id_response.data.device_identifier),
+        key_pair_handles: id_response
+            .data
+            .sk_accounts
+            .unwrap_or(vec![])
+            .into_iter()
+            .map(|sk| SshFido2KeyPairHandle {
+                application: sk.rp_id,
+                key_handle: sk.key_handle.0,
+                flags: 0x01,
+                public_key: sk.public_key.0,
+            })
+            .collect(),
+    };
+
+    id.store_to_disk()?;
+
+    for k in id.key_pair_handles {
+        if !k.application.starts_with("ssh:") {
+            continue;
+        }
+        eprintln!("{}", k.authorized_public_key()?);
+    }
 
     Ok(())
 }
 
 async fn start_daemon() {
     let home = create_home_path().expect("failed to create home dir");
-
-    let pipe = format!("{}{}", home, SSH_AGENT_PIPE);
-    let pipe = Path::new(pipe.as_str());
+    let pipe = home.join(SSH_AGENT_PIPE);
 
     if std::fs::metadata(&pipe).is_ok() {
         if let Ok(_) = std::fs::remove_file(&pipe) {
-            println!("Pipe deleted");
+            eprintln!("Pipe deleted");
         }
     }
-    println!("binding to {}", pipe.display());
+    eprintln!("binding to {}", pipe.display());
     let listener = UnixListener::bind(pipe);
     let handler = agent::Agent::new(new_default_client().expect("failed to startup client"));
     ssh_agent::Agent::run(handler, listener.unwrap()).await;
 }
 
-pub const HOME_DIR: &'static str = "/.kr2/";
+pub const HOME_DIR: &'static str = ".kr2";
 const SSH_AGENT_PIPE: &'static str = "krypton-ssh-agent.sock";
 
-fn create_home_path() -> Result<String, Error> {
+fn create_home_path() -> Result<PathBuf, Error> {
     let dirs = directories::UserDirs::new().ok_or(Error::CannotCreateHomeDir)?;
-    let home = dirs.home_dir();
-
-    let home = format!("{}{}", home.display(), HOME_DIR);
-    let home_path = Path::new(home.as_str());
-    if !Path::new(home_path).exists() {
-        std::fs::create_dir(home_path)?;
+    let home = dirs.home_dir().join(HOME_DIR);
+    if !home.exists() {
+        std::fs::create_dir(&home)?;
     }
     Ok(home)
 }
 
 pub fn global_device_uuid() -> Result<Base64Buffer, Error> {
-    let dirs = directories::UserDirs::new().ok_or(Error::PairingNotFound)?;
-    let path = format!(
-        "{}{}{}",
-        dirs.home_dir().display(),
-        crate::HOME_DIR,
-        "global_device.uuid"
-    );
-    let path = Path::new(path.as_str());
+    let path = create_home_path()?.join("global_device.uuid");
 
     if !std::fs::metadata(&path).is_ok() {
-        create_home_path()?;
         let uuid: Base64Buffer = sodiumoxide::randombytes::randombytes(32).into();
         std::fs::write(path, uuid.to_string())?;
         return Ok(uuid);

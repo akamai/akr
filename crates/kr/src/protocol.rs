@@ -1,9 +1,7 @@
 use crate::error::Error;
 use base64::STANDARD;
 use base64_serde::base64_serde_type;
-use byteorder::{BigEndian, WriteBytesExt};
 use serde::{Deserialize, Serialize};
-use std::io::{Cursor, Write};
 use std::{collections::BTreeMap, convert::TryFrom};
 
 pub const PROTOCOL_VERSION: &'static str = "3.0.0";
@@ -65,7 +63,9 @@ pub enum RequestBody {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IdRequest {}
+pub struct IdRequest {
+    pub send_sk_accounts: bool,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegisterRequest {
@@ -159,8 +159,19 @@ pub struct IdResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdData {
-    pub email: String,
+    #[serde(rename = "email")]
+    pub device_name: String,
     pub device_identifier: Base64Buffer,
+    /// security key accounts (keyhandle + public key)
+    pub sk_accounts: Option<Vec<SkAccount>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkAccount {
+    pub public_key: Base64Buffer,
+    pub key_handle: Base64Buffer,
+    #[serde(rename = "app_id")]
+    pub rp_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -179,8 +190,6 @@ pub struct AuthenticateResponse {
     pub signature: Base64Buffer,
     pub key_handle: Base64Buffer,
     pub user_handle: Option<Base64Buffer>,
-    // #[serde(rename = "auth_data")]
-    // pub authenticator_data: Base64Buffer,
 }
 
 impl TryFrom<ResponseBody> for IdResponse {

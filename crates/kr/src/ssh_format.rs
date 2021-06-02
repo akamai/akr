@@ -1,5 +1,4 @@
 use byteorder::{BigEndian, WriteBytesExt};
-use pem::EncodeConfig;
 use std::io::{Cursor, Write};
 
 use crate::{
@@ -11,14 +10,18 @@ use crate::{
 /// Represents the key pair of a sk-ecdsa-sha2-nistp256
 /// Note the private key is not actually here, because it's hardware backed
 /// https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.u2f
-pub struct SshFido2KeyPair {
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct SshFido2KeyPairHandle {
     pub application: String,
     pub public_key: Vec<u8>,
-    pub key_handle: Vec<u8>,
+    pub key_handle: KeyHandle,
     pub flags: u8,
 }
 
-impl SshFido2KeyPair {
+pub type KeyHandle = Vec<u8>;
+pub type SshWirePublicKey = Vec<u8>;
+
+impl SshFido2KeyPairHandle {
     pub const TYPE_ID: &'static str = "sk-ecdsa-sha2-nistp256@openssh.com";
     const CURVE_NAME: &'static str = "nistp256";
 
@@ -34,6 +37,11 @@ impl SshFido2KeyPair {
     }
 
     /// Private key PEM format
+    /// Note: this does't actually coontain the private key
+    /// because it's enclave backed...it just contains a "key_handle" (cred id)
+    /// in place of the private key
+    /// See: https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.u2f
+    #[allow(unused)]
     pub fn private_key_pem(&self) -> Result<String, Error> {
         /*
         "openssh-key-v1"0x00    # NULL-terminated "Auth Magic" string
@@ -71,7 +79,7 @@ impl SshFido2KeyPair {
         data.write_u32::<BigEndian>(pub_key.len() as u32)?;
         data.write_all(&pub_key)?;
 
-        let comment = "test";
+        let comment = "AkamaiMFA";
         let dummy_checksum = sodiumoxide::randombytes::randombytes(4);
         let priv_key = self.fmt_private_key()?;
         let len = (dummy_checksum.len() * 2) + priv_key.len() + 4 + comment.len();
@@ -110,7 +118,7 @@ impl SshFido2KeyPair {
     ///    ec_point	    Q
     ///    string		application (user-specified, but typically "ssh:")    
     ///
-    pub fn fmt_public_key(&self) -> Result<Vec<u8>, std::io::Error> {
+    pub fn fmt_public_key(&self) -> Result<SshWirePublicKey, std::io::Error> {
         let mut data = vec![];
 
         data.write_u32::<BigEndian>(Self::TYPE_ID.len() as u32)?;
@@ -129,7 +137,9 @@ impl SshFido2KeyPair {
     }
 
     /// extract the "application" string (rp id) from a wire format public key
-    pub fn parse_application_from_public_key(fmt_public_key: Vec<u8>) -> Result<String, Error> {
+    pub fn parse_application_from_public_key(
+        fmt_public_key: SshWirePublicKey,
+    ) -> Result<String, Error> {
         let mut buf = Cursor::new(fmt_public_key);
         let _type = read_data(&mut buf)?;
         let _curve = read_data(&mut buf)?;
@@ -146,7 +156,11 @@ impl SshFido2KeyPair {
     ///    uint8		flags
     ///    string		key_handle
     ///    string		reserved
-    ///
+    /// Note: this does't actually coontain the private key
+    /// because it's enclave backed...it just contains a "key_handle" (cred id)
+    /// in place of the private key
+    /// See: https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.u2f
+
     pub fn fmt_private_key(&self) -> Result<Vec<u8>, Error> {
         let mut data = vec![];
 

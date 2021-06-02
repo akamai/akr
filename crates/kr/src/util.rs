@@ -14,16 +14,16 @@ pub fn read_string(buf: &mut Cursor<Vec<u8>>) -> Result<String, Error> {
     Ok(std::str::from_utf8(&data).map(|s| s.to_string())?)
 }
 
-#[cfg(unix)]
-pub fn set_user_protected_permissions(path: &str) -> Result<(), Error> {
-    use std::os::unix::fs::PermissionsExt;
-    let mut perms = std::fs::File::open(path)?.metadata()?.permissions();
-    perms.set_mode(0o600);
-    std::fs::set_permissions(path, perms)?;
-    Ok(())
-}
+// #[cfg(unix)]
+// pub fn set_user_protected_permissions(path: &str) -> Result<(), Error> {
+//     use std::os::unix::fs::PermissionsExt;
+//     let mut perms = std::fs::File::open(path)?.metadata()?.permissions();
+//     perms.set_mode(0o600);
+//     std::fs::set_permissions(path, perms)?;
+//     Ok(())
+// }
 
-#[cfg(not(unix))]
-pub fn set_user_protected_permissions(path: &str) -> Result<(), Error> {
-    Ok(())
-}
+// #[cfg(not(unix))]
+// pub fn set_user_protected_permissions(path: &str) -> Result<(), Error> {
+//     Ok(())
+// }

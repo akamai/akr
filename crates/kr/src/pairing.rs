@@ -3,7 +3,7 @@ use crate::protocol::{Base64Buffer, Request, Response, WireMessage};
 use serde::{Deserialize, Serialize};
 use sodiumoxide::crypto::box_::{PublicKey, SecretKey, NONCEBYTES};
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -19,13 +19,8 @@ pub struct Pairing {
 impl Pairing {
     fn path() -> Result<PathBuf, Error> {
         let dirs = directories::UserDirs::new().ok_or(Error::PairingNotFound)?;
-        let path = format!(
-            "{}{}{}",
-            dirs.home_dir().display(),
-            crate::HOME_DIR,
-            "pairing.json"
-        );
-        Ok(Path::new(path.as_str()).to_path_buf())
+        let path = super::create_home_path()?.join("pairing.json");
+        Ok(path)
     }
 
     pub fn load_from_disk() -> Result<Self, Error> {

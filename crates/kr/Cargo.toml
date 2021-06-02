@@ -32,4 +32,3 @@ whoami = "1.0.0"
 qr2term = "0.2.1"
 eagre-asn1 = "0.3.0"
 reqwest = { version = "0.11.0", features = ["json"] }
-pem = "0.8.3"
