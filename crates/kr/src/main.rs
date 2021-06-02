@@ -16,12 +16,12 @@ mod transport;
 mod util;
 
 use clap::Clap;
-use client::new_default_client;
 use protocol::{RegisterRequest, RegisterResponse};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use tokio::net::UnixListener;
 
+use crate::client::Client;
 use crate::error::Error;
 use crate::protocol::{
     Base64Buffer, IdRequest, IdResponse, Request, RequestBody, ResponseBody, PROTOCOL_VERSION,
@@ -32,7 +32,6 @@ use crate::{
 };
 
 use crate::identity::StoredIdentity;
-use crate::transport::Transport;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -65,9 +64,9 @@ async fn pair() -> Result<(), Error> {
         },
     };
 
-    let client = new_default_client()?;
+    let client = Client::new()?;
     let queue_uuid = keypair.queue_uuid()?;
-    client.transport.create_queue(queue_uuid).await?;
+    client.create_queue(queue_uuid).await?;
 
     // print the qr code for pairing
     let raw = format!(
@@ -77,7 +76,6 @@ async fn pair() -> Result<(), Error> {
     qr2term::print_qr(raw).expect("failed to generate a qr code");
 
     let device_public_key = client
-        .transport
         .receive(queue_uuid, |messages| {
             keypair.open_sealed_public_key(messages.first())
         })
@@ -95,11 +93,9 @@ async fn pair() -> Result<(), Error> {
         send_sk_accounts: true,
     }));
     client
-        .transport
         .send(None, queue_uuid, pairing.seal(&request)?)
         .await?;
     let response = client
-        .transport
         .receive(queue_uuid, |messages| {
             pairing.find_response(&request.id, messages)
         })
@@ -140,7 +136,7 @@ async fn pair() -> Result<(), Error> {
 }
 
 async fn generate(name: String) -> Result<(), Error> {
-    let client = new_default_client()?;
+    let client = Client::new()?;
     let name = format!("ssh:{}", name);
     let resp: RegisterResponse = client
         .send_request(RequestBody::Register(RegisterRequest {
@@ -167,7 +163,7 @@ async fn generate(name: String) -> Result<(), Error> {
 }
 
 async fn load_keys() -> Result<(), Error> {
-    let client = new_default_client()?;
+    let client = Client::new()?;
 
     let id_response: IdResponse = client
         .send_request(RequestBody::Id(IdRequest {
@@ -214,7 +210,7 @@ async fn start_daemon() {
     }
     eprintln!("binding to {}", pipe.display());
     let listener = UnixListener::bind(pipe);
-    let handler = agent::Agent::new(new_default_client().expect("failed to startup client"));
+    let handler = agent::Agent::new(Client::new().expect("failed to startup client"));
     ssh_agent::Agent::run(handler, listener.unwrap()).await;
 }
 

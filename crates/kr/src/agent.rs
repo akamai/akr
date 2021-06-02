@@ -32,13 +32,13 @@ eagre_asn1::der_sequence! {
         s: NOTAG TYPE Vec<u8>,
 }
 
-pub struct Agent<T> {
-    pub client: Client<T>,
+pub struct Agent {
+    pub client: Client,
     identities: HashMap<SshWirePublicKey, SshFido2KeyPairHandle>,
 }
 
-impl<T> Agent<T> {
-    pub fn new(client: Client<T>) -> Self {
+impl Agent {
+    pub fn new(client: Client) -> Self {
         Agent {
             client,
             identities: HashMap::new(),
@@ -47,10 +47,7 @@ impl<T> Agent<T> {
 }
 
 #[async_trait]
-impl<T> SSHAgentHandler for Agent<T>
-where
-    T: Transport + Send + Sync,
-{
+impl SSHAgentHandler for Agent {
     async fn identities(&mut self) -> HandleResult<Response> {
         let ids = StoredIdentity::load_from_disk()?.key_pair_handles;
         self.identities = ids

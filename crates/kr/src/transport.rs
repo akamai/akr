@@ -24,6 +24,7 @@ pub mod pzqueue {
     use crate::protocol::Base64Buffer;
 
     use super::*;
+    #[derive(Clone)]
     pub struct PZQueueClient {
         client: reqwest::Client,
     }
@@ -123,6 +124,7 @@ pub mod krypton_aws {
         ReceiveMessageRequest, SendMessageRequest, Sqs, SqsClient,
     };
 
+    #[derive(Clone)]
     pub struct AwsClient {
         sqs: SqsClient,
         sns: SnsClient,
@@ -143,6 +145,7 @@ pub mod krypton_aws {
             queue_uuid: Uuid,
             message: WireMessage,
         ) -> Result<(), Error> {
+            self.create_queue(queue_uuid).await?;
             let queue = QueueName(queue_uuid);
             self.send_inner(&queue.send(), device_token, message).await
         }
@@ -151,6 +154,7 @@ pub mod krypton_aws {
         where
             F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
+            self.create_queue(queue_uuid).await?;
             let queue = QueueName(queue_uuid);
             self.receive_inner(&queue.receive(), on_messages).await
         }

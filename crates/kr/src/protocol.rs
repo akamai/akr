@@ -226,6 +226,7 @@ impl TryFrom<ResponseBody> for AuthenticateResponse {
 }
 
 // Wire protocols
+#[derive(Debug, Clone)]
 pub enum WireMessage {
     SealedMessage(Vec<u8>),
     SealedPublicKey(Vec<u8>),
