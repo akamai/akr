@@ -1,6 +1,6 @@
 use crate::protocol::{AuthenticateRequest, AuthenticateResponse, Base64Buffer, RequestBody};
 use crate::ssh_format::SshWirePublicKey;
-use crate::{client::Client, transport::Transport};
+use crate::{client::Client};
 use crate::{
     error::*,
     util::{read_data, read_string},

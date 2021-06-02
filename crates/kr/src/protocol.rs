@@ -94,18 +94,6 @@ pub struct AuthenticateRequest {
     pub key_handles: Option<Vec<Base64Buffer>>,
 }
 
-impl AuthenticateRequest {
-    pub fn get_key_handles(&self) -> Vec<&Base64Buffer> {
-        if let Some(kh) = &self.key_handles {
-            kh.iter().collect()
-        } else if let Some(kh) = &self.key_handle {
-            vec![kh]
-        } else {
-            vec![]
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Response {
     pub request_id: String,

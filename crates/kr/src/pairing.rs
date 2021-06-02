@@ -18,7 +18,6 @@ pub struct Pairing {
 
 impl Pairing {
     fn path() -> Result<PathBuf, Error> {
-        let dirs = directories::UserDirs::new().ok_or(Error::PairingNotFound)?;
         let path = super::create_home_path()?.join("pairing.json");
         Ok(path)
     }

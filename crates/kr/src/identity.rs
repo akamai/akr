@@ -50,6 +50,11 @@ impl StoredIdentity {
         Ok(())
     }
 
+    pub fn clear_stored_key_handles() -> Result<(), Error> {
+        std::fs::remove_dir_all(Self::pub_keys_dir_path()?)?;
+        Ok(())
+    }
+
     pub fn load_from_disk() -> Result<Self, Error> {
         let path = Self::id_path()?;
 
@@ -91,6 +96,8 @@ impl StoredIdentity {
                 device_id: self.device_id.clone(),
             })?,
         )?;
+
+        Self::clear_stored_key_handles()?;
 
         self.key_pair_handles
             .iter()

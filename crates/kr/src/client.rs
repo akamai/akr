@@ -1,5 +1,5 @@
 use crate::pairing::Pairing;
-use crate::protocol::{Request, RequestBody, Response, ResponseBody, WireMessage};
+use crate::protocol::{Request, RequestBody, ResponseBody, WireMessage};
 use crate::transport::krypton_aws::AwsClient;
 use crate::transport::Transport;
 use crate::{error::Error, transport};
