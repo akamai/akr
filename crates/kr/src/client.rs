@@ -81,6 +81,12 @@ impl Client {
             })
             .await?;
 
+        // special case to handle unpairing
+        if let ResponseBody::Unpair(_) = response.body {
+            Pairing::delete_pairing_file()?;
+            return Err(Error::NotPaired);
+        }
+
         pairing.aws_push_id = response.aws_push_id.or(pairing.aws_push_id);
         pairing.device_token = response.device_token.or(pairing.device_token);
         pairing.store_to_disk()?;

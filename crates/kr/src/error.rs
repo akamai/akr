@@ -14,6 +14,9 @@ pub enum Error {
     #[error("Cannot create home directory")]
     CannotCreateHomeDir,
 
+    #[error("Cannot read home directory")]
+    CannotReadHomeDir,
+
     #[error("Invalid pairing hello")]
     InvalidPairingHelloMessage,
 
@@ -32,8 +35,8 @@ pub enum Error {
     #[error("Invalid response message received")]
     UnexpectedResponse,
 
-    #[error("Failed to load pairing")]
-    PairingNotFound,
+    #[error("Not paired with Akamai MFA. Please run the `pair` command.")]
+    NotPaired,
 
     #[error("Failed to load stored id")]
     StoredIdentityNotFound,

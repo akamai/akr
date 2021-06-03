@@ -60,6 +60,9 @@ pub enum RequestBody {
 
     #[serde(rename = "u2f_authenticate_request")]
     Authenticate(AuthenticateRequest),
+
+    #[serde(rename = "unpair_request")]
+    Unpair(UnpairRequest),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,6 +96,9 @@ pub struct AuthenticateRequest {
     pub key_handle: Option<Base64Buffer>,
     pub key_handles: Option<Vec<Base64Buffer>>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UnpairRequest {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Response {
@@ -137,6 +143,9 @@ pub enum ResponseBody {
 
     #[serde(rename = "u2f_authenticate_response")]
     Authenticate(ClientResult<AuthenticateResponse>),
+
+    #[serde(rename = "unpair_response")]
+    Unpair(ClientResult<UnpairResponse>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -180,6 +189,9 @@ pub struct AuthenticateResponse {
     pub user_handle: Option<Base64Buffer>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UnpairResponse {}
+
 impl TryFrom<ResponseBody> for IdResponse {
     type Error = crate::error::Error;
 
@@ -208,6 +220,17 @@ impl TryFrom<ResponseBody> for AuthenticateResponse {
     fn try_from(value: ResponseBody) -> Result<Self, Error> {
         match value {
             ResponseBody::Authenticate(resp) => resp.into(),
+            _ => Err(Error::UnexpectedResponse),
+        }
+    }
+}
+
+impl TryFrom<ResponseBody> for UnpairResponse {
+    type Error = crate::error::Error;
+
+    fn try_from(value: ResponseBody) -> Result<Self, Error> {
+        match value {
+            ResponseBody::Unpair(resp) => resp.into(),
             _ => Err(Error::UnexpectedResponse),
         }
     }

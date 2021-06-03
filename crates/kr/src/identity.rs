@@ -1,3 +1,4 @@
+use crate::create_home_path;
 use crate::error::Error;
 use crate::protocol::Base64Buffer;
 use crate::ssh_format::SshFido2KeyPairHandle;
@@ -21,8 +22,7 @@ impl StoredIdentity {
     const PUBLIC_KEYS_DIR: &'static str = "pub";
 
     fn dir_path() -> Result<PathBuf, Error> {
-        let dirs = directories::UserDirs::new().ok_or(Error::PairingNotFound)?;
-        Ok(dirs.home_dir().join(crate::HOME_DIR))
+        Ok(create_home_path()?)
     }
 
     fn id_path() -> Result<PathBuf, Error> {

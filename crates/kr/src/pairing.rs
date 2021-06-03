@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::protocol::{Base64Buffer, Request, Response, WireMessage};
+use crate::protocol::{Base64Buffer, Request, Response, ResponseBody, WireMessage};
 use serde::{Deserialize, Serialize};
 use sodiumoxide::crypto::box_::{PublicKey, SecretKey, NONCEBYTES};
 
@@ -26,7 +26,7 @@ impl Pairing {
         let path = Self::path()?;
 
         if !std::fs::metadata(&path).is_ok() {
-            return Err(Error::PairingNotFound);
+            return Err(Error::NotPaired);
         }
 
         let contents = std::fs::read_to_string(path)?;
@@ -36,6 +36,12 @@ impl Pairing {
     pub fn store_to_disk(&self) -> Result<(), Error> {
         let path = Self::path()?;
         std::fs::write(&path, serde_json::to_string_pretty(&self)?)?;
+        Ok(())
+    }
+
+    pub fn delete_pairing_file() -> Result<(), Error> {
+        let path = Self::path()?;
+        std::fs::remove_file(path)?;
         Ok(())
     }
 
@@ -62,10 +68,15 @@ impl Pairing {
     ) -> Result<Option<Response>, Error> {
         for wire_message in wire_messages {
             let response = self.open(wire_message)?;
-            if response.request_id.as_str() != request_id {
-                continue;
+
+            // special case to handle unpairing
+            if let ResponseBody::Unpair(_) = response.body {
+                return Err(Error::NotPaired);
             }
-            return Ok(Some(response));
+
+            if response.request_id.as_str() == request_id {
+                return Ok(Some(response));
+            }
         }
         Ok(None)
     }
