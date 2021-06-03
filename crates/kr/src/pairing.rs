@@ -85,7 +85,7 @@ pub struct PairingQr {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Os {
-    #[serde(rename = "pk")]
+    #[serde(rename = "d")]
     pub device_identifier: Base64Buffer,
     #[serde(rename = "os")]
     pub kind: String,

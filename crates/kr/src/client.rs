@@ -28,7 +28,7 @@ impl Client {
 
 impl Client {
     pub async fn create_queue(&self, uuid: Uuid) -> Result<(), Error> {
-        let _ = self.aws.create_queue(uuid).await;
+        let _ = self.aws.create_queue(uuid).await?;
         Ok(())
     }
 
