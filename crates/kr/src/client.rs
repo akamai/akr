@@ -3,6 +3,7 @@ use crate::protocol::{Request, RequestBody, ResponseBody, WireMessage};
 use crate::transport::krypton_aws::AwsClient;
 use crate::transport::Transport;
 use crate::{error::Error, transport};
+use futures::future;
 use std::convert::TryFrom;
 use transport::pzqueue::PZQueueClient;
 use uuid::Uuid;
@@ -57,10 +58,8 @@ impl Client {
         let pzq_recv = self.pzq.receive(queue_uuid, on_messages);
         let aws_recv = self.aws.receive(queue_uuid, on_messages);
 
-        tokio::select! {
-            r = pzq_recv => r,
-            r = aws_recv => r,
-        }
+        let (res, _) = futures::future::select_ok(vec![pzq_recv, aws_recv]).await?;
+        Ok(res)
     }
 
     pub async fn send_request<R>(&self, request: RequestBody) -> Result<R, Error>
