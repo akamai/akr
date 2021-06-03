@@ -41,7 +41,11 @@ impl Client {
         let aws_send = self.aws.send(None, queue_uuid, message);
 
         // send both at the same time and wait for first success
-        let (_, _) = futures::future::select_ok(vec![pzq_send, aws_send]).await?;
+        let (r1, r2) = futures::future::join(pzq_send, aws_send).await;
+        if r1.is_err() && r2.is_err() {
+            return r1;
+        }
+
         Ok(())
     }
 
