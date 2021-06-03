@@ -40,7 +40,9 @@ impl StoredIdentity {
         }
 
         let dir_path = Self::pub_keys_dir_path()?;
-        let _ = std::fs::create_dir_all(&dir_path).ok();
+        if !dir_path.exists() {
+            std::fs::create_dir_all(&dir_path)?;
+        }
 
         let name = hex::encode(
             sodiumoxide::crypto::hash::sha256::hash(handle.key_handle.as_slice()).as_ref(),
@@ -51,7 +53,10 @@ impl StoredIdentity {
     }
 
     pub fn clear_stored_key_handles() -> Result<(), Error> {
-        std::fs::remove_dir_all(Self::pub_keys_dir_path()?)?;
+        if Self::pub_keys_dir_path()?.exists() {
+            let _ = std::fs::remove_dir_all(Self::pub_keys_dir_path()?)?;
+        }
+
         Ok(())
     }
 
