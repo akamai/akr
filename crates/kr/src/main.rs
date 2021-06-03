@@ -3,12 +3,13 @@
 mod cli;
 use self::cli::*;
 
-mod agent;
+mod ssh_agent;
 
 mod client;
 
 mod error;
 mod identity;
+mod launch;
 mod pairing;
 mod protocol;
 mod ssh_format;
@@ -32,6 +33,7 @@ use crate::{
 };
 
 use crate::identity::StoredIdentity;
+use ::ssh_agent::Agent as SshAgent;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -210,8 +212,8 @@ async fn start_daemon() {
     }
     eprintln!("binding to {}", pipe.display());
     let listener = UnixListener::bind(pipe);
-    let handler = agent::Agent::new(Client::new().expect("failed to startup client"));
-    ssh_agent::Agent::run(handler, listener.unwrap()).await;
+    let handler = ssh_agent::Agent::new(Client::new().expect("failed to startup client"));
+    SshAgent::run(handler, listener.unwrap()).await;
 }
 
 pub const HOME_DIR: &'static str = ".kr2";
