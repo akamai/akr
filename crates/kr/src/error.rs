@@ -41,6 +41,9 @@ pub enum Error {
     #[error("Failed to load stored id")]
     StoredIdentityNotFound,
 
+    #[error("Invalid authenticator data received")]
+    BadAuthenticatorData,
+
     #[error("QR Code rendering failed: '{0}'")]
     QrCodeRendering(#[from] qr2term::QrError),
 

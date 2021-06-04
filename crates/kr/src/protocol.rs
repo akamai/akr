@@ -187,6 +187,25 @@ pub struct AuthenticateResponse {
     pub signature: Base64Buffer,
     pub key_handle: Base64Buffer,
     pub user_handle: Option<Base64Buffer>,
+
+    /// Authenticator data format contains:
+    ///     rp_id_hash [32 bytes]
+    ///     flags [1 byte]
+    ///     sign_counter [4 bytes]
+    ///     ...
+    /// https://www.w3.org/TR/webauthn-2/#sctn-authenticator-data
+    #[serde(rename = "auth_data")]
+    pub authenticator_data: Base64Buffer,
+}
+
+impl AuthenticateResponse {
+    pub fn get_auth_flags(&self) -> Result<u8, Error> {
+        if self.authenticator_data.0.len() < 33 {
+            return Err(Error::BadAuthenticatorData);
+        }
+
+        Ok(self.authenticator_data.0[32])
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

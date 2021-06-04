@@ -1,6 +1,6 @@
+use crate::client::Client;
 use crate::protocol::{AuthenticateRequest, AuthenticateResponse, Base64Buffer, RequestBody};
 use crate::ssh_format::SshWirePublicKey;
-use crate::{client::Client};
 use crate::{
     error::*,
     util::{read_data, read_string},
@@ -156,6 +156,7 @@ impl SSHAgentHandler for Agent {
             }))
             .await?;
 
+        let flags = resp.get_auth_flags()?;
         /* parse the asn.1 signature into ssh format
 
            ecdsa signature
@@ -188,7 +189,7 @@ impl SSHAgentHandler for Agent {
         data.write_u32::<BigEndian>(signature.len() as u32)?;
         data.write_all(&signature)?;
 
-        data.write_u8(0x01)?;
+        data.write_u8(flags)?;
         data.write_u32::<BigEndian>(resp.counter)?;
 
         Ok(Response::SignResponse { signature: data })
