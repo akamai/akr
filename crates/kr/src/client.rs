@@ -3,7 +3,6 @@ use crate::protocol::{Request, RequestBody, ResponseBody, WireMessage};
 use crate::transport::krypton_aws::AwsClient;
 use crate::transport::Transport;
 use crate::{error::Error, transport};
-use futures::future;
 use std::convert::TryFrom;
 use transport::pzqueue::PZQueueClient;
 use uuid::Uuid;
@@ -28,7 +27,7 @@ impl Client {
 
 impl Client {
     pub async fn create_queue(&self, uuid: Uuid) -> Result<(), Error> {
-        let _ = self.aws.create_queue(uuid).await?;
+        let _ = self.aws.create_queue(uuid).await;
         Ok(())
     }
 

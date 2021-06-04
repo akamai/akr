@@ -82,6 +82,9 @@ pub enum Error {
 
     #[error("Request error: {0}")]
     HttpRequestError(#[from] reqwest::Error),
+
+    #[error("Template error: {0}")]
+    TemplateFailed(#[from] askama::Error),
 }
 
 impl From<Infallible> for Error {

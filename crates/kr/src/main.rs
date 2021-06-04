@@ -12,6 +12,7 @@ mod identity;
 mod launch;
 mod pairing;
 mod protocol;
+mod setup;
 mod ssh_format;
 mod transport;
 mod util;
@@ -38,7 +39,6 @@ use ::ssh_agent::Agent as SshAgent;
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     env_logger::init();
-
     sodiumoxide::init().map_err(|_| Error::CryptoInit).unwrap();
 
     let opts: Opts = Opts::parse();
@@ -48,6 +48,7 @@ async fn main() -> Result<(), Error> {
         Command::Pair => pair().await?,
         Command::Generate { name } => generate(name).await?,
         Command::Load => load_keys().await?,
+        Command::Setup(args) => setup::run(args).await?,
     }
 
     Ok(())

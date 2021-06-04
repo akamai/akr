@@ -1,7 +1,8 @@
 [package]
 name = "kr"
+description = "Akamai MFA Developer CLI and SSH Agent"
 version = "0.1.0"
-authors = ["Alex Grinman <me@alexgr.in>"]
+authors = ["Alex Grinman <agrinman@akamai.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -32,3 +33,4 @@ whoami = "1.0.0"
 qr2term = "0.2.1"
 eagre-asn1 = "0.3.0"
 reqwest = { version = "0.11.0", features = ["json"] }
+askama = "0.10.5"

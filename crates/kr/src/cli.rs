@@ -11,16 +11,33 @@ pub struct Opts {
 
 #[derive(Clap)]
 pub enum Command {
-    /// start the ssh-agent daemon
-    Start,
     /// pair with your phone/tablet
     Pair,
     /// load keys from the Akamai MFA app on your phone/tablet
     Load,
-    /// generate a new credential
+    /// generate a new SSH credential
     Generate {
         /// a common name for the credential
         #[clap(long)]
         name: String,
     },
+    /// Setup the background daemon and ssh configuration
+    Setup(SetupArgs),
+
+    /// start the ssh-agent daemon
+    /// Note: don't run this manually, see `setup` to
+    /// install this as a background service
+    Start,
+}
+
+#[derive(Clap)]
+pub struct SetupArgs {
+    /// a custom path for the ssh config to update
+    /// omit for default "~/.ssh/config"
+    #[clap(long)]
+    pub ssh_config_path: Option<String>,
+
+    /// Only print out the config changes without making them
+    #[clap(long)]
+    pub print_only: bool,
 }
