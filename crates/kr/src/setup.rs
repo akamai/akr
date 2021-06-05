@@ -14,28 +14,18 @@ pub async fn run(args: SetupArgs) -> Result<(), Error> {
 
 /// print out config changes
 pub fn print_config() -> Result<(), Error> {
-    eprintln!("SSH Config stanza:\n{}\n", "???"); //TODO:ssh config
-    eprintln!("== Background Service ==\n{}\n", Daemon::new().render()?);
+    eprintln!(
+        "== SSH Config Additions ==\n{}\n",
+        create_ssh_config_stanza()?
+    ); //TODO:ssh config
+    eprintln!("==  Background Service  ==\n{}\n", Daemon::new().render()?);
     Ok(())
 }
 
 const BEGIN_CONFIG_STANZA: &'static str = "# Begin Akamai MFA SSH Config";
 const END_CONFIG_STANZA: &'static str = "# End Akamai MFA SSH Config";
 
-/// add our host stanza to the config file
-pub async fn update_ssh_config(custom_path: Option<String>) -> Result<(), Error> {
-    let path = if let Some(custom) = custom_path {
-        Path::new(&custom).into()
-    } else {
-        directories::UserDirs::new()
-            .ok_or(Error::CannotReadHomeDir)?
-            .home_dir()
-            .join(".ssh")
-            .join("config")
-    };
-
-    let ssh_config = std::fs::read_to_string(&path)?;
-
+fn create_ssh_config_stanza() -> Result<String, Error> {
     let agent_socket_path = crate::create_home_path()?
         .join(crate::SSH_AGENT_PIPE)
         .display()
@@ -53,6 +43,23 @@ pub async fn update_ssh_config(custom_path: Option<String>) -> Result<(), Error>
     stanza.push_str(END_CONFIG_STANZA);
     stanza.push_str("\n");
 
+    Ok(stanza)
+}
+
+/// add our host stanza to the config file
+pub async fn update_ssh_config(custom_path: Option<String>) -> Result<(), Error> {
+    let path = if let Some(custom) = custom_path {
+        Path::new(&custom).into()
+    } else {
+        directories::UserDirs::new()
+            .ok_or(Error::CannotReadHomeDir)?
+            .home_dir()
+            .join(".ssh")
+            .join("config")
+    };
+
+    let ssh_config = std::fs::read_to_string(&path)?;
+
     // clear any existing config by us
     let mut lines: Vec<&str> = ssh_config.split("\n").collect();
     let start = lines
@@ -69,7 +76,7 @@ pub async fn update_ssh_config(custom_path: Option<String>) -> Result<(), Error>
         _ => lines.join("\n"),
     };
 
-    clean_config.push_str(&stanza);
+    clean_config.push_str(&create_ssh_config_stanza()?);
 
     Ok(std::fs::write(&path, clean_config)?)
 }
