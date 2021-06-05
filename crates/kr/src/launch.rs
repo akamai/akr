@@ -2,7 +2,6 @@
 
 use crate::error::Error;
 use askama::Template;
-use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct Daemon {
