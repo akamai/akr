@@ -1,10 +1,9 @@
 [Unit]
-Description={{description}}
+Description={{bin_name}}
 
 [Service]
-ExecStart=/usr/bin/{{bin_name}} start
+ExecStart={{bin_path}} start
 Restart=on-failure
-User={{current_user}}
 
 [Install]
 WantedBy=default.target

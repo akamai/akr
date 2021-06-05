@@ -8,7 +8,7 @@ pub async fn run(args: SetupArgs) -> Result<(), Error> {
         return print_config();
     }
 
-    update_ssh_config(args.ssh_config_path).await?;
+    // update_ssh_config(args.ssh_config_path).await?;
     Daemon::new().install()
 }
 

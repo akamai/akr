@@ -76,6 +76,7 @@ impl LaunchAgent {
 #[template(path = "linux/systemd.service", escape = "none")]
 struct SystemdService {
     description: String,
+    bin_path: String,
     bin_name: String,
     current_user: String,
 }
@@ -85,6 +86,10 @@ impl From<Daemon> for SystemdService {
     fn from(d: Daemon) -> Self {
         Self {
             bin_name: d.bin_name,
+            bin_path: std::env::current_exe()
+                .expect("failed to get exe path")
+                .to_string_lossy()
+                .to_string(),
             description: env!("CARGO_PKG_DESCRIPTION").to_string(),
             current_user: whoami::username(),
         }
@@ -94,13 +99,24 @@ impl From<Daemon> for SystemdService {
 #[cfg(target_os = "linux")]
 impl SystemdService {
     fn install(&self) -> Result<(), Error> {
-        let path = PathBuf::new()
-            .join("etc")
-            .join("systemd")
-            .join("system")
-            .join(format!("{}.service", &self.bin_name));
+        let dirs = directories::UserDirs::new().ok_or(Error::CannotCreateHomeDir)?;
 
+        let path = dirs.home_dir().join(".config").join("systemd").join("user");
+        std::fs::create_dir_all(&path)?;
+
+        let service_name = format!("{}.service", &self.bin_name);
+
+        let path = path.join(&service_name);
         let contents = self.render()?;
-        Ok(std::fs::write(path, contents)?)
+        std::fs::write(path, contents)?;
+
+        let _ = std::process::Command::new("systemctl")
+            .arg("--user")
+            .arg("--now")
+            .arg("enable")
+            .arg(service_name)
+            .output()?;
+
+        Ok(())
     }
 }

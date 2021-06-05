@@ -44,6 +44,24 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "kr setup",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=kr",
+                    "--package=kr"
+                ],
+                "filter": {
+                    "name": "kr",
+                    "kind": "bin"
+                }
+            },
+            "args": ["setup"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "kr start",
             "cargo": {
                 "args": [
