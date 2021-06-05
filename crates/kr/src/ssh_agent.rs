@@ -140,6 +140,12 @@ impl SSHAgentHandler for Agent {
             SshFido2KeyPairHandle::parse_application_from_public_key(pubkey)?
         };
 
+        // pop a notification
+        let _ = notify_rust::Notification::new()
+            .summary(&rp_id)
+            .body("SSH Authentication Request")
+            .show();
+
         let challenge_hash = sodiumoxide::crypto::hash::sha256::hash(data.as_slice())
             .0
             .to_vec();
