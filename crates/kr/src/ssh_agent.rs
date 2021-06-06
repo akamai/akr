@@ -202,7 +202,7 @@ impl SSHAgentHandler for Agent {
 /// show a desktop notification about the pending request
 fn show_notification(rp_id: &str) {
     #[cfg(target_os = "macos")]
-    mac_notification_sys::set_application(&"com.akamai.pushzero");
+    let _ = mac_notification_sys::set_application(&"com.akamai.pushzero");
 
     let _ = notify_rust::Notification::new()
         .summary(format!("Login Request: {}", rp_id).as_str())

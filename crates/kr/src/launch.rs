@@ -7,17 +7,19 @@ use askama::Template;
 pub struct Daemon {
     pub name: String,
     pub bin_name: String,
+    pub bin_path: String,
 }
 
 impl Daemon {
     const BIN_NAME: &'static str = env!("CARGO_BIN_NAME");
     const NAME: &'static str = env!("CARGO_PKG_NAME");
 
-    pub fn new() -> Self {
-        Daemon {
+    pub fn new() -> Result<Self, Error> {
+        Ok(Daemon {
             bin_name: Self::BIN_NAME.to_string(),
             name: Self::NAME.to_string(),
-        }
+            bin_path: std::env::current_exe()?.to_string_lossy().to_string(),
+        })
     }
 
     pub fn install(self) -> Result<(), Error> {
@@ -45,6 +47,7 @@ impl Daemon {
 struct LaunchAgent {
     label: String,
     bin_name: String,
+    bin_path: String,
 }
 
 #[cfg(target_os = "macos")]
@@ -53,6 +56,7 @@ impl From<Daemon> for LaunchAgent {
         Self {
             label: format!("com.akamai.{}", d.bin_name),
             bin_name: d.bin_name,
+            bin_path: d.bin_path,
         }
     }
 }
@@ -65,8 +69,27 @@ impl LaunchAgent {
             .join("Library")
             .join("LaunchAgents")
             .join(format!("{}.plist", &self.label));
+
+        if path.exists() {
+            // first unload if already there
+            let _ = std::process::Command::new("launchctl")
+                .arg("unload")
+                .arg("-w")
+                .arg(&path)
+                .output()?;
+        }
+
         let contents = self.render()?;
-        Ok(std::fs::write(path, contents)?)
+        std::fs::write(&path, contents)?;
+
+        // then reload
+        let _ = std::process::Command::new("launchctl")
+            .arg("load")
+            .arg("-w")
+            .arg(&path)
+            .output()?;
+
+        Ok(())
     }
 }
 
@@ -85,10 +108,7 @@ impl From<Daemon> for SystemdService {
     fn from(d: Daemon) -> Self {
         Self {
             bin_name: d.bin_name,
-            bin_path: std::env::current_exe()
-                .expect("failed to get exe path")
-                .to_string_lossy()
-                .to_string(),
+            bin_path: d.bin_path,
             description: env!("CARGO_PKG_DESCRIPTION").to_string(),
             current_user: whoami::username(),
         }

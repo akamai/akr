@@ -6,10 +6,12 @@
 	<string>{{label}}</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/usr/local/bin/{{bin_name}}</string>
-        <string>start</string>
+		<string>{{bin_path}}</string>
+		<string>start</string>
 	</array>
 	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
 	<true/>
 </dict>
 </plist>

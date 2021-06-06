@@ -9,7 +9,7 @@ pub async fn run(args: SetupArgs) -> Result<(), Error> {
     }
 
     update_ssh_config(args.ssh_config_path).await?;
-    Daemon::new().install()
+    Daemon::new()?.install()
 }
 
 /// print out config changes
@@ -18,7 +18,7 @@ pub fn print_config() -> Result<(), Error> {
         "== SSH Config Additions ==\n{}\n",
         create_ssh_config_stanza()?
     ); //TODO:ssh config
-    eprintln!("==  Background Service  ==\n{}\n", Daemon::new().render()?);
+    eprintln!("==  Background Service  ==\n{}\n", Daemon::new()?.render()?);
     Ok(())
 }
 
