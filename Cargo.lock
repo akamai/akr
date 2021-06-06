@@ -949,6 +949,7 @@ dependencies = [
  "eagre-asn1",
  "env_logger 0.8.3",
  "futures",
+ "mac-notification-sys",
  "notify-rust",
  "qr2term",
  "reqwest",

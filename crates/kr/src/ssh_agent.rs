@@ -141,10 +141,7 @@ impl SSHAgentHandler for Agent {
         };
 
         // pop a notification
-        let _ = notify_rust::Notification::new()
-            .summary(&rp_id)
-            .body("SSH Authentication Request")
-            .show();
+        show_notification(&rp_id);
 
         let challenge_hash = sodiumoxide::crypto::hash::sha256::hash(data.as_slice())
             .0
@@ -200,4 +197,14 @@ impl SSHAgentHandler for Agent {
 
         Ok(Response::SignResponse { signature: data })
     }
+}
+
+/// show a desktop notification about the pending request
+fn show_notification(rp_id: &str) {
+    #[cfg(target_os = "macos")]
+    mac_notification_sys::set_application(&"com.akamai.pushzero");
+
+    let _ = notify_rust::Notification::new()
+        .summary(format!("Login Request: {}", rp_id).as_str())
+        .show();
 }
