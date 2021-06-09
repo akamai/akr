@@ -5,6 +5,10 @@ version = "0.1.0"
 authors = ["Alex Grinman <agrinman@akamai.com>"]
 edition = "2018"
 
+[[bin]]
+name = "akr"
+path = "src/main.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
