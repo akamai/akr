@@ -79,6 +79,9 @@ pub enum Error {
 
     #[error("Unknown key selected")]
     UnknownKey,
+    
+    #[error("Invalid RP prefix")]
+    BadRpPrefix,
 
     #[error("Device error: {0}")]
     DeviceError(String),

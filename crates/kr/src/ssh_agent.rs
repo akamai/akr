@@ -137,7 +137,11 @@ impl SSHAgentHandler for Agent {
             id.application.clone()
         } else {
             // parse the rp_id from the public key
-            SshFido2KeyPairHandle::parse_application_from_public_key(pubkey)?
+            let rp_id = SshFido2KeyPairHandle::parse_application_from_public_key(pubkey)?;
+            if !rp_id.starts_with("ssh:") {
+                return Err(Error::BadRpPrefix)?;
+            }
+            rp_id
         };
 
         // pop a notification
