@@ -36,6 +36,9 @@ use crate::{
 use crate::identity::StoredIdentity;
 use ::ssh_agent::Agent as SshAgent;
 
+pub const HOME_DIR: &'static str = ".akr";
+const SSH_AGENT_PIPE: &'static str = "akr-ssh-agent.sock";
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     env_logger::init();
@@ -216,9 +219,6 @@ async fn start_daemon() {
     let handler = ssh_agent::Agent::new(Client::new().expect("failed to startup client"));
     SshAgent::run(handler, listener.unwrap()).await;
 }
-
-pub const HOME_DIR: &'static str = ".kr2";
-const SSH_AGENT_PIPE: &'static str = "krypton-ssh-agent.sock";
 
 fn create_home_path() -> Result<PathBuf, Error> {
     let dirs = directories::UserDirs::new().ok_or(Error::CannotCreateHomeDir)?;
