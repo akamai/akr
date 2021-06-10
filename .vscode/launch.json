@@ -8,15 +8,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "kr generate",
+            "name": "akr generate",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=kr",
+                    "--bin=akr",
                     "--package=kr"
                 ],
                 "filter": {
-                    "name": "kr",
+                    "name": "akr",
                     "kind": "bin"
                 }
             },
@@ -26,15 +26,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "kr pair",
+            "name": "akr pair",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=kr",
-                    "--package=kr"
+                    "--bin=akr",
+                    "--package=akr"
                 ],
                 "filter": {
-                    "name": "kr",
+                    "name": "akr",
                     "kind": "bin"
                 }
             },
@@ -44,15 +44,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "kr setup",
+            "name": "akr setup",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=kr",
+                    "--bin=akr",
                     "--package=kr"
                 ],
                 "filter": {
-                    "name": "kr",
+                    "name": "akr",
                     "kind": "bin"
                 }
             },
@@ -62,15 +62,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "kr start",
+            "name": "akr start",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=kr",
+                    "--bin=akr",
                     "--package=kr"
                 ],
                 "filter": {
-                    "name": "kr",
+                    "name": "akr",
                     "kind": "bin"
                 }
             },
@@ -85,11 +85,11 @@
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=kr",
+                    "--bin=akr",
                     "--package=kr"
                 ],
                 "filter": {
-                    "name": "kr",
+                    "name": "akr",
                     "kind": "bin"
                 }
             },

@@ -145,7 +145,10 @@ impl SSHAgentHandler for Agent {
         };
 
         // pop a notification
-        show_notification(&rp_id);
+        let rp_id_clone = rp_id.clone();
+        tokio::spawn(async move {
+            show_notification(&rp_id_clone);
+        });
 
         let challenge_hash = sodiumoxide::crypto::hash::sha256::hash(data.as_slice())
             .0
