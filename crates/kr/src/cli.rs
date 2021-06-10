@@ -17,7 +17,11 @@ pub struct Opts {
 #[derive(Clap)]
 pub enum Command {
     /// pair with your phone/tablet
-    Pair,
+    Pair {
+        /// Run the setup step before pairing
+        #[clap(long)]
+        setup: bool,
+    },
     /// load keys from the Akamai MFA app on your phone/tablet
     Load,
     /// generate a new SSH credential

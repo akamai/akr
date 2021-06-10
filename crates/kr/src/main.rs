@@ -48,7 +48,16 @@ async fn main() -> Result<(), Error> {
 
     match opts.command {
         Command::Start => start_daemon().await,
-        Command::Pair => pair().await?,
+        Command::Pair { setup } => {
+            if setup {
+                setup::run(SetupArgs {
+                    print_only: false,
+                    ssh_config_path: None,
+                })
+                .await?
+            }
+            pair().await?
+        }
         Command::Generate { name } => generate(name).await?,
         Command::Load => load_keys().await?,
         Command::Setup(args) => setup::run(args).await?,
