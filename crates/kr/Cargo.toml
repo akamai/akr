@@ -1,9 +1,10 @@
 [package]
-name = "kr"
+name = "akr"
 description = "Akamai MFA Developer CLI and SSH Agent"
 version = "0.1.0"
 authors = ["Alex Grinman <agrinman@akamai.com>"]
 edition = "2018"
+license = "All Rights Reserved, Akamai Technologies"
 
 [[bin]]
 name = "akr"
@@ -39,6 +40,17 @@ eagre-asn1 = "0.3.0"
 reqwest = { version = "0.11.0", default_features = false, features = ["json", "rustls-tls"] }
 askama = "0.10.5"
 notify-rust = "4.5.2"
+run_script = "0.8.0"
 
 [target.'cfg(target_os="macos")'.dependencies]
 mac-notification-sys = "0.3.0"
+
+[package.metadata.generate-rpm]
+assets = [
+        { source = "target/release/akr", dest = "/usr/bin/akr", mode = "0755" },
+]
+
+[package.metadata.deb]
+assets = [
+    ["target/release/akr", "usr/bin/akr", "755"],
+]

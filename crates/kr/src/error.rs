@@ -1,3 +1,4 @@
+use run_script::ScriptError;
 use std::convert::Infallible;
 
 #[derive(Debug, thiserror::Error)]
@@ -79,7 +80,7 @@ pub enum Error {
 
     #[error("Unknown key selected")]
     UnknownKey,
-    
+
     #[error("Invalid RP prefix")]
     BadRpPrefix,
 
@@ -91,6 +92,9 @@ pub enum Error {
 
     #[error("Template error: {0}")]
     TemplateFailed(#[from] askama::Error),
+
+    #[error("Couldn't Parse SSH version: '{0}'")]
+    RunScriptError(#[from] ScriptError),
 }
 
 impl From<Infallible> for Error {
@@ -105,4 +109,32 @@ impl From<Error> for ssh_agent::error::Error {
             details: format!("Error: {:?}", error),
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum QueueDenyExplanation {
+    PZQueueDown,
+    AWSQueueDown,
+}
+
+/// A richer error type for errors returned from the evaluation of user agents.
+#[derive(Debug)]
+pub struct QueueDenyError {
+    pub explanation: QueueDenyExplanation,
+}
+impl std::fmt::Display for QueueDenyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use QueueDenyExplanation::*;
+        let explanation = match self.explanation {
+            PZQueueDown => "Akamai MFA not reachable. Please make sure you can reach mfa.akamai.com",
+            AWSQueueDown => "AWS is down or unreachable. Please make sure you can reach sqs.us-east-1.amazonaws.com ",
+        };
+        f.write_str(&format!("{}", explanation))
+    }
+}
+
+#[derive(Debug)]
+pub enum QueueEvaluation {
+    Allow,
+    Deny(QueueDenyError),
 }

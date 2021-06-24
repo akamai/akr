@@ -1,3 +1,4 @@
+use crate::error::{QueueDenyError, QueueDenyExplanation, QueueEvaluation};
 use crate::pairing::Pairing;
 use crate::protocol::{Request, RequestBody, ResponseBody, WireMessage};
 use crate::transport::krypton_aws::AwsClient;
@@ -20,7 +21,7 @@ impl Client {
         })
     }
 
-    fn pairing() -> Result<Pairing, Error> {
+    pub fn pairing() -> Result<Pairing, Error> {
         Ok(Pairing::load_from_disk()?)
     }
 }
@@ -74,13 +75,23 @@ impl Client {
         self.send(pairing.device_token.clone(), queue_uuid, wire_message)
             .await?;
 
-        let response = self
+        let response = match self
             .receive(queue_uuid, |messages| {
                 pairing.find_response(&request.id, messages)
             })
-            .await?;
+            .await
+        {
+            Ok(res) => res,
+            Err(error) => {
+                if matches!(error, Error::NotPaired) {
+                    Pairing::delete_pairing_file()?;
+                }
+                return Err(error);
+            }
+        };
 
         // special case to handle unpairing
+        // TODO needed?
         if let ResponseBody::Unpair(_) = response.body {
             Pairing::delete_pairing_file()?;
             return Err(Error::NotPaired);
@@ -91,5 +102,29 @@ impl Client {
         pairing.store_to_disk()?;
 
         Ok(std::convert::TryFrom::try_from(response.body)?)
+    }
+
+    pub async fn pz_health_check(&self) -> Result<QueueEvaluation, Error> {
+        match self.pzq.health_check().await {
+            Ok(_) => Ok(QueueEvaluation::Allow),
+            Err(error) => {
+                eprintln!("PZQueue health check failed: {}", error);
+                Ok(QueueEvaluation::Deny(QueueDenyError {
+                    explanation: QueueDenyExplanation::PZQueueDown,
+                }))
+            }
+        }
+    }
+
+    pub async fn aws_health_check(&self) -> Result<QueueEvaluation, Error> {
+        match self.pzq.health_check().await {
+            Ok(_) => Ok(QueueEvaluation::Allow),
+            Err(error) => {
+                eprintln!("AWS error: {}", error);
+                Ok(QueueEvaluation::Deny(QueueDenyError {
+                    explanation: QueueDenyExplanation::AWSQueueDown,
+                }))
+            }
+        }
     }
 }

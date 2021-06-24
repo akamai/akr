@@ -18,6 +18,7 @@ mod transport;
 mod util;
 
 use clap::Clap;
+use protocol::UnpairRequest;
 use protocol::{RegisterRequest, RegisterResponse};
 use std::path::PathBuf;
 
@@ -35,6 +36,7 @@ use crate::{
 
 use crate::identity::StoredIdentity;
 use ::ssh_agent::Agent as SshAgent;
+use run_script::ScriptOptions;
 
 pub const HOME_DIR: &'static str = ".akr";
 const SSH_AGENT_PIPE: &'static str = "akr-ssh-agent.sock";
@@ -58,15 +60,37 @@ async fn main() -> Result<(), Error> {
             }
             pair().await?
         }
+        Command::Unpair => unpair().await?,
+        Command::Status => get_pairing_details().await?,
         Command::Generate { name } => generate(name).await?,
         Command::Load => load_keys().await?,
         Command::Setup(args) => setup::run(args).await?,
+        Command::Check => health_check().await?,
     }
 
     Ok(())
 }
 
 async fn pair() -> Result<(), Error> {
+    let client = Client::new()?;
+    let mut already_paired = false;
+    let mut paired_device_name = "".to_string();
+
+    //IdResponse
+    let id_response_result: Result<IdResponse, Error> = client
+        .send_request(RequestBody::Id(IdRequest {
+            send_sk_accounts: true,
+        }))
+        .await;
+
+    match id_response_result {
+        Ok(id_response) => {
+            already_paired = true;
+            paired_device_name = id_response.data.device_name;
+        }
+        Err(_) => {}
+    }
+
     let keypair: Keypair = sodiumoxide::crypto::box_::gen_keypair().into();
     let qr = PairingQr {
         public_key: keypair.public_key.clone(),
@@ -79,7 +103,6 @@ async fn pair() -> Result<(), Error> {
         },
     };
 
-    let client = Client::new()?;
     let queue_uuid = keypair.queue_uuid()?;
     client.create_queue(queue_uuid).await?;
 
@@ -89,6 +112,11 @@ async fn pair() -> Result<(), Error> {
         base64::encode(serde_json::to_string(&qr)?)
     );
     qr2term::print_qr(raw).expect("failed to generate a qr code");
+    if already_paired {
+        eprintln!("You are already paired with device {}. To override Scan the above QR code to pair a new device ", paired_device_name);
+    } else {
+        eprintln!("Scan the above QR code to pair your device...");
+    }
 
     let device_public_key = client
         .receive(queue_uuid, |messages| {
@@ -143,10 +171,37 @@ async fn pair() -> Result<(), Error> {
     };
 
     id.store_to_disk()?;
-
     eprintln!("\nPaired successfully!\n");
-    // println!("{}", id.authorized_key_format()?);
+    Ok(())
+}
 
+async fn unpair() -> Result<(), Error> {
+    let client = Client::new()?;
+    let pairing = Client::pairing()?;
+    let queue_uuid = pairing.queue_uuid()?;
+    let request = Request::new(RequestBody::Unpair(UnpairRequest {}));
+    let wire_message = pairing.seal(&request)?;
+
+    let _ = client
+        .send(pairing.device_token.clone(), queue_uuid, wire_message)
+        .await?;
+
+    Pairing::delete_pairing_file()?;
+    eprintln!("\nUnpaired successfully!\n");
+    Ok(())
+}
+
+// TODO: have a timeout on the call
+async fn get_pairing_details() -> Result<(), Error> {
+    let client = Client::new()?;
+
+    let id_response: IdResponse = client
+        .send_request(RequestBody::Id(IdRequest {
+            send_sk_accounts: true,
+        }))
+        .await?;
+
+    eprintln!("Paired with {}", id_response.data.device_name);
     Ok(())
 }
 
@@ -227,6 +282,88 @@ async fn start_daemon() {
     let listener = UnixListener::bind(pipe);
     let handler = ssh_agent::Agent::new(Client::new().expect("failed to startup client"));
     SshAgent::run(handler, listener.unwrap()).await;
+}
+
+async fn health_check() -> Result<(), Error> {
+    let client = Client::new()?;
+    let mut errors_encountered = false;
+
+    // check if queues are working properly or not
+    match client.pz_health_check().await? {
+        error::QueueEvaluation::Allow => {}
+        error::QueueEvaluation::Deny(reason) => {
+            eprintln!("{}", reason);
+            errors_encountered = true;
+        }
+    }
+    match client.aws_health_check().await? {
+        error::QueueEvaluation::Allow => {}
+        error::QueueEvaluation::Deny(reason) => {
+            eprintln!("{}", reason);
+            errors_encountered = true;
+        }
+    }
+
+    // check if ssh 8.2+ is installed or not
+    let (ssh_code, ssh_output, ssh_error) = run_script::run(
+        r#"
+        [[ $(ssh -V 2>&1) =~ [0-9.]+ ]];echo $BASH_REMATCH
+         "#,
+        &vec![],
+        &ScriptOptions::new(),
+    )
+    .map_err(|error| Error::RunScriptError(error))?;
+
+    // TODO print ssh version
+    if ssh_error == "" && ssh_code == 0 {
+        match ssh_output.trim().parse::<f64>() {
+            Ok(version) => {
+                if version < 8.2 {
+                    eprintln!("❗️OpenSSH 8.2+ is required to use akr");
+                    errors_encountered = true;
+                }
+            }
+            Err(error) => {
+                eprintln!("❗️Couldn't parse ssh version. Please manually check to make sure you have Openssh 8.2+ installed. {}", error);
+            }
+        }
+    }
+
+    //check if the user has any keys
+    let id_response: IdResponse = client
+        .send_request(RequestBody::Id(IdRequest {
+            send_sk_accounts: true,
+        }))
+        .await?;
+
+    let id_filtered: Vec<SshFido2KeyPairHandle> = id_response
+        .data
+        .sk_accounts
+        .unwrap_or(vec![])
+        .into_iter()
+        .map(|sk| SshFido2KeyPairHandle {
+            application: sk.rp_id,
+            key_handle: sk.key_handle.0,
+            flags: 0x01,
+            public_key: sk.public_key.0,
+        })
+        .collect::<Vec<SshFido2KeyPairHandle>>()
+        .into_iter()
+        .filter(|x| x.application.starts_with("ssh:"))
+        .collect();
+
+    if id_filtered.is_empty() {
+        eprintln!(
+            "❗️You do not have any keys loaded in your agent. Please generate one using `akr generate --name <key_name>`"
+        );
+        errors_encountered = true;
+    }
+
+    if !errors_encountered {
+        eprintln!("You're all set! ");
+    }
+
+    Ok(())
 }
 
 fn create_home_path() -> Result<PathBuf, Error> {
