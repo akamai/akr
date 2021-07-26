@@ -75,27 +75,11 @@ impl Client {
         self.send(pairing.device_token.clone(), queue_uuid, wire_message)
             .await?;
 
-        let response = match self
+        let response = self
             .receive(queue_uuid, |messages| {
                 pairing.find_response(&request.id, messages)
             })
-            .await
-        {
-            Ok(res) => res,
-            Err(error) => {
-                if matches!(error, Error::NotPaired) {
-                    Pairing::delete_pairing_file()?;
-                }
-                return Err(error);
-            }
-        };
-
-        // special case to handle unpairing
-        // TODO needed?
-        if let ResponseBody::Unpair(_) = response.body {
-            Pairing::delete_pairing_file()?;
-            return Err(Error::NotPaired);
-        }
+            .await?;
 
         pairing.aws_push_id = response.aws_push_id.or(pairing.aws_push_id);
         pairing.device_token = response.device_token.or(pairing.device_token);

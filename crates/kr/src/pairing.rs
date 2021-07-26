@@ -71,6 +71,7 @@ impl Pairing {
 
             // special case to handle unpairing
             if let ResponseBody::Unpair(_) = response.body {
+                Pairing::delete_pairing_file()?;
                 return Err(Error::NotPaired);
             }
 
