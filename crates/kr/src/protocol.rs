@@ -279,4 +279,11 @@ impl WireMessage {
             Self::SealedPublicKey(data) => vec![vec![0x02], data].concat(),
         }
     }
+
+    pub fn data(self) -> Vec<u8> {
+        match self {
+            Self::SealedMessage(data) => data,
+            Self::SealedPublicKey(data) => data,
+        }
+    }
 }

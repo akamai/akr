@@ -144,7 +144,7 @@ impl SSHAgentHandler for Agent {
             rp_id
         };
 
-        // pop a notification
+        //pop a notification
         let rp_id_clone = rp_id.clone();
         tokio::spawn(async move {
             show_notification(&rp_id_clone);
@@ -209,8 +209,8 @@ impl SSHAgentHandler for Agent {
 /// show a desktop notification about the pending request
 fn show_notification(rp_id: &str) {
     #[cfg(target_os = "macos")]
-    let _ = mac_notification_sys::set_application(&"com.akamai.pushzero");
-
+    //open issue https://github.com/h4llow3En/mac-notification-sys/issues/8
+    // let _ = mac_notification_sys::set_application(&"com.akamai.pushzero");
     let _ = notify_rust::Notification::new()
         .summary(format!("Login Request: {}", rp_id).as_str())
         .show();

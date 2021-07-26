@@ -37,6 +37,12 @@ pub enum Command {
     /// Note: don't run this manually, see `setup` to
     /// install this as a background service
     Start,
+    /// get pairing info from your phone/tablet
+    Status,
+    /// Health check of all the dep systems and system configs
+    Check,
+    /// Unpair from your phone/tablet
+    Unpair,
 }
 
 #[derive(Clap)]

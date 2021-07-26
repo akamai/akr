@@ -1,3 +1,4 @@
+use crate::error::{QueueDenyError, QueueDenyExplanation, QueueEvaluation};
 use crate::pairing::Pairing;
 use crate::protocol::{Request, RequestBody, ResponseBody, WireMessage};
 use crate::transport::krypton_aws::AwsClient;
@@ -20,7 +21,7 @@ impl Client {
         })
     }
 
-    fn pairing() -> Result<Pairing, Error> {
+    pub fn pairing() -> Result<Pairing, Error> {
         Ok(Pairing::load_from_disk()?)
     }
 }
@@ -80,16 +81,34 @@ impl Client {
             })
             .await?;
 
-        // special case to handle unpairing
-        if let ResponseBody::Unpair(_) = response.body {
-            Pairing::delete_pairing_file()?;
-            return Err(Error::NotPaired);
-        }
-
         pairing.aws_push_id = response.aws_push_id.or(pairing.aws_push_id);
         pairing.device_token = response.device_token.or(pairing.device_token);
         pairing.store_to_disk()?;
 
         Ok(std::convert::TryFrom::try_from(response.body)?)
+    }
+
+    pub async fn pz_health_check(&self) -> Result<QueueEvaluation, Error> {
+        match self.pzq.health_check().await {
+            Ok(_) => Ok(QueueEvaluation::Allow),
+            Err(error) => {
+                eprintln!("PZQueue health check failed: {}", error);
+                Ok(QueueEvaluation::Deny(QueueDenyError {
+                    explanation: QueueDenyExplanation::PZQueueDown,
+                }))
+            }
+        }
+    }
+
+    pub async fn aws_health_check(&self) -> Result<QueueEvaluation, Error> {
+        match self.pzq.health_check().await {
+            Ok(_) => Ok(QueueEvaluation::Allow),
+            Err(error) => {
+                eprintln!("AWS error: {}", error);
+                Ok(QueueEvaluation::Deny(QueueDenyError {
+                    explanation: QueueDenyExplanation::AWSQueueDown,
+                }))
+            }
+        }
     }
 }
