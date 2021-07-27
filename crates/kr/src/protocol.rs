@@ -175,8 +175,6 @@ pub struct SkAccount {
 pub struct RegisterResponse {
     pub public_key: Base64Buffer,
     pub key_handle: Base64Buffer,
-    pub attestation_certificate: Option<Base64Buffer>,
-    pub signature: Base64Buffer,
     pub attestation_data: Option<Base64Buffer>,
 }
 

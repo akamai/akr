@@ -42,10 +42,17 @@ pub const HOME_DIR: &'static str = ".akr";
 const SSH_AGENT_PIPE: &'static str = "akr-ssh-agent.sock";
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() {
     env_logger::init();
     sodiumoxide::init().map_err(|_| Error::CryptoInit).unwrap();
 
+    let result = handle_command().await;
+    if let Err(e) = result {
+        eprintln!("Error: {}", e);
+    }
+}
+
+async fn handle_command() -> Result<(), Error> {
     let opts: Opts = Opts::parse();
 
     match opts.command {
