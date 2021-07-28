@@ -18,12 +18,38 @@ not. If allowed, the phone simply sends the signature back to the agent. _Privat
 
 # Getting Started
 
-## Usage
-[TODO]: akr setup, akr pair, akr generate, then demo server
+## Overview of Commands
+Conventions:
+* required args `<>`
+
+Usage:  
+`akr [options] [command] [arguments]`
+
+Options:
+ 
+| Syntax | Description |
+| - | - |
+| -V, --version | Display the version number for the akr client. |
+| -h, --help | Display usage information for akr client. |
+ 
+
+Commands:
+
+| Command | Description | Example
+| - | - | - | 
+| setup | Setup the background daemon and ssh configuration | `akr setup`
+| pair  | Pair with your phone/tablet | `akr pair`
+| generate | Generate a new SSH credential | `akr generate --name <ssh_credential_name>`
+| unpair | Unpair from your phone/tablet | `akr unpair`
+| load | Load keys from the Akamai MFA app on your phone/tablet | `akr load`
+| status | Get pairing info from your phone/tablet | `akr status`
+| check  | Health check of all the dep systems and system configs| `akr check`
+
+
+
 
 ## Requirements
 [TODO]: OS requirements + SSH cli/server requirements
-
 
 ## Installation instructions
 ### macOS (brew)
@@ -32,19 +58,31 @@ $ brew install akamai/mfa/akr
 ```
 
 ### Debian
-[TODO]
+```sh
+curl -SsL https://akamai.github.io/akr-pkg/debian/KEY.gpg | sudo apt-key add -
+sudo curl -SsL -o /etc/apt/sources.list.d/akr.list https://akamai.github.io/akr-pkg/debian/akr.list
+sudo apt update
+sudo apt install kr
+```
 
-### CentOS
-[TODO]
+### CentOS/RHEL
+```sh
+$ sudo vim /etc/yum.repos.d/akr.repo
+[akr]
+name=akr repository
+baseurl=https://akamai.github.io/akr-pkg/rpm/
+gpgcheck=0
+enabled=1
 
-### RHEL
-[TODO]
+$ sudo yum -y update
+$ sudo yum -y install kr
+```
 
 ### Build from source
 `akr` is built entirely with Rust. Ensure you have Rust installed (https://rustup.rs) and run `cargo build`.
 
 ## Notes on Configuration
-Running `akr setup` updates your SSH config file and installeds the `akr` ssh-agent as a background service on your system.
+Running `akr setup` updates your SSH config file and installs the `akr` ssh-agent as a background service on your system.
 To see what `akr` configures, run `akr setup --print-only`.
 
 The SSH config additions looks as follows:
