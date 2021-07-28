@@ -70,7 +70,7 @@ Commands:
 ## Installation instructions
 ### macOS (brew)
 ```sh
-$ brew install akamai/mfa/akr
+brew install akamai/mfa/akr
 ```
 
 ### Debian
@@ -83,15 +83,19 @@ sudo apt install kr
 
 ### CentOS/RHEL
 ```sh
-$ sudo vim /etc/yum.repos.d/akr.repo
+sudo vim /etc/yum.repos.d/akr.repo
+
 [akr]
 name=akr repository
 baseurl=https://akamai.github.io/akr-pkg/rpm/
 gpgcheck=0
 enabled=1
-
-$ sudo yum -y update
-$ sudo yum -y install kr
+```
+```sh
+sudo yum -y update
+```
+```sh
+sudo yum -y install kr
 ```
 
 ### Build from source
