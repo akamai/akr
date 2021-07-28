@@ -1,8 +1,7 @@
 on:
   push:
     branches:
-      - feature/installation_workflow_and_utility_commands
-
+      - update_actions_for_linux
 name: akr
 
 jobs:
