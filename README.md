@@ -37,7 +37,7 @@ Commands:
 
 | Command | Description | Example
 | - | - | - | 
-| setup | Setup the background daemon and ssh configuration | `akr setup`
+| setup | Setup the background daemon and updates ssh configuration | `akr setup`
 | pair  | Pair with your phone/tablet | `akr pair`
 | generate | Generate a new SSH credential | `akr generate --name <ssh_credential_name>`
 | unpair | Unpair from your phone/tablet | `akr unpair`
