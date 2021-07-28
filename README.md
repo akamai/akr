@@ -110,11 +110,11 @@ Host *
 ```
 This enables your native system SSH to communicate to the `akr` ssh-agent process over a unix socket.
 
-# License
-Copyright (c) 2021, Akamai Technologies.
-All rights reserved.
-
 # Security Disclosure
 For any security related questions, please contact our security team.
 Please disclose any issues responsibly using our [Akamai Security GPG Public Key](https://www.akamai.com/us/en/multimedia/documents/infosec/akamai-security-general.pub)
 and send communications to [security@akamai.com](mailto://security@akamai.com).
+
+# License
+Copyright (c) 2021, Akamai Technologies.
+All rights reserved.
