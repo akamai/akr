@@ -43,8 +43,6 @@ build_artifacts() {
 }
 
 create_github_release() {
-    export GH_REPO="github.com/akamai/homebrew-mfa"
-
     gh release create -t "$VERSION" -n "Release $VERSION" $VERSION *.bottle.tar.gz
     gh workflow run bottle --raw-field versionString=$VERSION
     
