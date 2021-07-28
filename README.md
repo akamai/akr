@@ -111,7 +111,8 @@ Host *
 This enables your native system SSH to communicate to the `akr` ssh-agent process over a unix socket.
 
 # License
-All rights reserved by Akamai Technologies.
+Copyright (c) 2021, Akamai Technologies.
+All rights reserved.
 
 # Security Disclosure
 For any security related questions, please contact our security team.
