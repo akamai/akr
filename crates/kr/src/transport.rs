@@ -232,6 +232,11 @@ pub mod krypton_aws {
     }
 
     impl AwsClient {
+        /// Note to reader: it is *COMPLETELY OK* for these values to be publicly known.
+        /// These are heavily restricted credentials: create a queue, add messages to it, and read messages from it. 
+        /// For example, listing queues is not permitted. 
+        /// All messages are end-to-end encrypted and authenticated via the Krypton protocol.
+        /// This is a legacy bridge to old krypton and will be removed soon.
         const ACCESS_KEY: &'static str = "AKIAJMZJ3X6MHMXRF7QQ";
         const SECRET_KEY: &'static str = "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";
         const QUEUE_URL_BASE: &'static str = "https://sqs.us-east-1.amazonaws.com/911777333295";
