@@ -1,0 +1,25 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Brew-Bottle-macOS
+
+on: 
+  workflow_dispatch:
+    inputs:
+      versionString:
+        description: 'The version semver string like 0.1.14'     
+        required: true  
+        
+jobs:
+  build:
+    runs-on: macos-latest
+      
+    steps:
+      - uses: actions/checkout@v2
+      - name: rust-toolchain
+        uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: 1.53
+      - name: bottle
+        run: ./brew_bottle.sh ${{ github.event.inputs.versionString }}
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
