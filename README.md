@@ -17,11 +17,29 @@ not. If allowed, the phone simply sends the signature back to the agent. _Privat
 
 
 # Getting Started
+## First run
+1. First, run `akr setup` to create configurations and start the agent
+2. Next, pair your device: run `akr pair`
+3. Scan the QR code with the [Akamai MFA app](https://mfa.akamai.com/app)
+4. Run `akr generate --name mykey` to generate your first SSH key in Akamai MFA. This will output your SSH __public__ key.
+5. Add your public key to a server or `github.com`
+
+
+## Verify everything works
+To verify whether your Akamai MFA FIDO2 key works, try the following:
+
+```sh
+$ ssh ssh.demo.krypt.co -p 5000
+```
+
+If everything works correctly, you should see something like this:
+```sh
+Hello John!
+
+You have successfully authenticated to the Akamai MFA SSH FIDO2 test server! 
+```
 
 ## Overview of Commands
-Conventions:
-* required args `<>`
-
 Usage:  
 `akr [options] [command] [arguments]`
 
@@ -41,48 +59,13 @@ Commands:
 | pair  | Pair with your phone/tablet | `akr pair`
 | generate | Generate a new SSH credential | `akr generate --name <ssh_credential_name>`
 | unpair | Unpair from your phone/tablet | `akr unpair`
-| load | Load keys from the Akamai MFA app on your phone/tablet | `akr load`
+| load | Load public keys from the Akamai MFA app on your phone/tablet | `akr load`
 | status | Get pairing info from your phone/tablet | `akr status`
 | check  | Health check of all the dep systems and system configs| `akr check`
 
-Example:
-
-To verify whether your FIDO2 key is able to authenticate, try this
-
-```sh
-ssh ssh.demo.krypt.co -p 5000
-```
-
-You should get something like below
-
-```
- ╰❯ 🍁 $ ssh ssh.demo.krypt.co -p 5000
-
-
-
-░█████╗░██╗░░██╗░█████╗░███╗░░░███╗░█████╗░██╗  ███╗░░░███╗███████╗░█████╗░
-██╔══██╗██║░██╔╝██╔══██╗████╗░████║██╔══██╗██║  ████╗░████║██╔════╝██╔══██╗
-███████║█████═╝░███████║██╔████╔██║███████║██║  ██╔████╔██║█████╗░░███████║
-██╔══██║██╔═██╗░██╔══██║██║╚██╔╝██║██╔══██║██║  ██║╚██╔╝██║██╔══╝░░██╔══██║
-██║░░██║██║░╚██╗██║░░██║██║░╚═╝░██║██║░░██║██║  ██║░╚═╝░██║██║░░░░░██║░░██║
-╚═╝░░╚═╝╚═╝░░╚═╝╚═╝░░╚═╝╚═╝░░░░░╚═╝╚═╝░░╚═╝╚═╝  ╚═╝░░░░░╚═╝╚═╝░░░░░╚═╝░░╚═╝
-
-██╗░░██╗██████╗░██╗░░░██╗██████╗░████████╗░█████╗░███╗░░██╗
-██║░██╔╝██╔══██╗╚██╗░██╔╝██╔══██╗╚══██╔══╝██╔══██╗████╗░██║
-█████═╝░██████╔╝░╚████╔╝░██████╔╝░░░██║░░░██║░░██║██╔██╗██║
-██╔═██╗░██╔══██╗░░╚██╔╝░░██╔═══╝░░░░██║░░░██║░░██║██║╚████║
-██║░╚██╗██║░░██║░░░██║░░░██║░░░░░░░░██║░░░╚█████╔╝██║░╚███║
-╚═╝░░╚═╝╚═╝░░╚═╝░░░╚═╝░░░╚═╝░░░░░░░░╚═╝░░░░╚════╝░╚═╝░░╚══╝
-
-
-Hello John!
-
-You have successfully authenticated to the Akamai MFA SSH FIDO2 test server! 
-```
-
 ## Requirements
-  * MacOS (10.10+) or Linux (64 Bit) (Debian, RHEL, and CentOS).
-  * SSH 8.2+
+  * macOS (10.15+) or Linux (64 Bit) (Debian, RHEL, and CentOS).
+  * OpenSSH Client and Server 8.2+
 
 ## Installation instructions
 ### macOS (brew)
