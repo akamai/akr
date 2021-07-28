@@ -49,7 +49,8 @@ Commands:
 
 
 ## Requirements
-[TODO]: OS requirements + SSH cli/server requirements
+  * MacOS (10.10+) or Linux (64 Bit) (Debian, RHEL, and CentOS).
+  * SSH 8.2+
 
 ## Installation instructions
 ### macOS (brew)
