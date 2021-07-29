@@ -15,6 +15,7 @@ operation. This request is routed to a
 paired mobile phone (running the Akamai MFA app), where the user decides whether to allow the operation or
 not. If allowed, the phone simply sends the signature back to the agent. _Private keys never leaves the phone._
 
+> ⚠️ `akr` is currently in early-preview mode! Please contact us with any issues you find or feature suggestions.
 
 # Getting Started
 ## First run
