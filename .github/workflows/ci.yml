@@ -1,7 +1,4 @@
-on:
-  push:
-    branches:
-      - feature/installation_workflow_and_utility_commands
+on: [push]
 
 name: akr
 
@@ -14,17 +11,16 @@ jobs:
     - uses: actions/checkout@v2
     - run: cargo check
     - run: cargo pkgid -p akr
-    - run: 'echo "$(cargo pkgid -p akr | cut -d# -f2)"'
+    - run: 'echo "$(cargo pkgid -p akr | cut -d: -f3)"'
     - id: rustversion
-      run: 'echo "::set-output name=rustversion::$(cargo pkgid -p akr | cut -d# -f2)"'
+      run: 'echo "::set-output name=rustversion::$(cargo pkgid -p akr | cut -d: -f3)"'
   build:
     needs: quickcheck
     name: 'build-${{matrix.os}}'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        #
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-18.04]
     steps:
     - uses: actions/checkout@v2
     - name: Build
@@ -33,16 +29,16 @@ jobs:
       run: cargo test
   fedorarpmbuild:
     needs: [build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     name: FedoraRpm
     steps:
     - uses: actions/checkout@v2
     - name: BuildRpm
       id: buildrpm
-      run: cargo install cargo-generate-rpm &&
-        cargo build --release &&
+      run: rustup toolchain install 1.52.0 && cargo +1.52.0 install cargo-generate-rpm --version 0.4.0 --locked &&
+        cargo +1.52.0 build --release &&
         strip -s target/release/akr &&
-        cargo generate-rpm -p crates/akr
+        cargo +1.52.0 generate-rpm -p crates/kr
     - name: Upload fedora RPM Artifact  
       uses: actions/upload-artifact@v2
       with:
@@ -50,7 +46,7 @@ jobs:
         path: ./target/generate-rpm/*
   debbuild:
     needs: [build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     name: Amd64Deb
     steps:
     - uses: actions/checkout@v2
@@ -67,33 +63,8 @@ jobs:
       with:
         name: amd64deb
         path: ./target/debian/*
-  macosbuild:
-    needs: [build, quickcheck]
-    runs-on: macos-latest
-    name: MacOS
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build
-      run: cargo build --release
-    - name: Zip up macos binaries
-      run: 'zip -j akr_${{needs.quickcheck.outputs.version}}_macos.zip ./target/release/akr ./target/release/akr'
-    - name: Upload Zipped Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: macos
-        path: 'akr_${{needs.quickcheck.outputs.version}}_macos.zip'
-    - name: Upload Bin Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: macos
-        path: ./target/release/akr
-    - name: Upload Daemon Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: macos
-        path: ./target/release/akr
   update_release_draft:
-    needs: [quickcheck,  debbuild, macosbuild, fedorarpmbuild]
+    needs: [quickcheck,  debbuild, fedorarpmbuild]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -103,8 +74,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
-          tag_name: '${{ needs.quickcheck.outputs.version }}'
-          release_name: Release ${{ needs.quickcheck.outputs.version }}
+          tag_name: 1.0
+          release_name: Release 1.0
           body: 'Change Me'
           draft: true
           prerelease: false
@@ -128,12 +99,3 @@ jobs:
           asset_path: ./fedorarpm/akr-${{needs.quickcheck.outputs.version}}-1.x86_64.rpm
           asset_name: 'akr_${{needs.quickcheck.outputs.version}}-1_amd64_fedora.rpm'
           asset_content_type: application/octet-stream
-      - name: Upload Macos Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./macos/akr_${{needs.quickcheck.outputs.version}}_macos.zip
-          asset_name: 'akr_${{needs.quickcheck.outputs.version}}_macos.zip'
-          asset_content_type: application/zip
