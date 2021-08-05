@@ -6,18 +6,18 @@ use serde::Serialize;
 use uuid::Uuid;
 #[async_trait]
 pub trait Transport {
-    async fn create_queue(&self, queue_uuid: Uuid) -> Result<(), Error>;
+    async fn create_queue(&mut self, queue_uuid: Uuid) -> Result<(), Error>;
     async fn send(
-        &self,
+        &mut self,
         device_token: Option<String>,
         queue_uuid: Uuid,
         message: WireMessage,
     ) -> Result<(), Error>;
-    async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
+    async fn receive<T, F>(&mut self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
     where
         F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send;
 
-    async fn health_check(&self) -> Result<(), Error>;
+    async fn health_check(&mut self) -> Result<(), Error>;
 }
 
 pub mod pzqueue {
@@ -105,12 +105,12 @@ pub mod pzqueue {
 
     #[async_trait]
     impl Transport for PZQueueClient {
-        async fn create_queue(&self, _: Uuid) -> Result<(), Error> {
+        async fn create_queue(&mut self, _: Uuid) -> Result<(), Error> {
             Ok(())
         }
 
         async fn send(
-            &self,
+            &mut self,
             device_token: Option<String>,
             queue_uuid: Uuid,
             message: WireMessage,
@@ -119,7 +119,7 @@ pub mod pzqueue {
             self.send_inner(&queue.send(), device_token, message).await
         }
 
-        async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
+        async fn receive<T, F>(&mut self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
         where
             F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
@@ -127,7 +127,7 @@ pub mod pzqueue {
             self.receive_inner(&queue.receive(), on_messages).await
         }
 
-        async fn health_check(&self) -> Result<(), Error> {
+        async fn health_check(&mut self) -> Result<(), Error> {
             let queue_uuid = Uuid::new_v4();
             self.create_queue(queue_uuid).await?;
             let fake_message: Vec<u8> = sodiumoxide::randombytes::randombytes(4);
@@ -171,13 +171,13 @@ pub mod krypton_aws {
 
     #[async_trait]
     impl Transport for AwsClient {
-        async fn create_queue(&self, queue_uuid: Uuid) -> Result<(), Error> {
+        async fn create_queue(&mut self, queue_uuid: Uuid) -> Result<(), Error> {
             let queue = QueueName(queue_uuid);
             self.create_queue_inner(&queue).await
         }
 
         async fn send(
-            &self,
+            &mut self,
             device_token: Option<SnsEndpointArn>,
             queue_uuid: Uuid,
             message: WireMessage,
@@ -187,7 +187,7 @@ pub mod krypton_aws {
             self.send_inner(&queue.send(), device_token, message).await
         }
 
-        async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
+        async fn receive<T, F>(&mut self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
         where
             F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
@@ -196,7 +196,7 @@ pub mod krypton_aws {
             self.receive_inner(&queue.receive(), on_messages).await
         }
 
-        async fn health_check(&self) -> Result<(), Error> {
+        async fn health_check(&mut self) -> Result<(), Error> {
             let fake_message: Vec<u8> = sodiumoxide::randombytes::randombytes(4);
 
             let queue_uuid = Uuid::new_v4();
@@ -233,8 +233,8 @@ pub mod krypton_aws {
 
     impl AwsClient {
         /// Note to reader: it is *COMPLETELY OK* for these values to be publicly known.
-        /// These are heavily restricted credentials: create a queue, add messages to it, and read messages from it. 
-        /// For example, listing queues is not permitted. 
+        /// These are heavily restricted credentials: create a queue, add messages to it, and read messages from it.
+        /// For example, listing queues is not permitted.
         /// All messages are end-to-end encrypted and authenticated via the Krypton protocol.
         /// This is a legacy bridge to old krypton and will be removed soon.
         const ACCESS_KEY: &'static str = "AKIAJMZJ3X6MHMXRF7QQ";
@@ -438,5 +438,258 @@ pub mod krypton_aws {
         apns_sandbox: &'a str,
         #[serde(rename = "GCM")]
         gcm: &'a str,
+    }
+}
+
+pub mod krypton_azure {
+
+    use super::*;
+    use uuid::Uuid;
+
+    #[derive(Clone)]
+    pub struct AzureQueueClient {
+        client: reqwest::Client,
+        token: Option<TokenResult>,
+    }
+    pub struct QueueName(Uuid);
+    impl QueueName {
+        pub fn send(&self) -> String {
+            self.0.to_string().to_uppercase().replace("-", "")
+        }
+
+        pub fn receive(&self) -> String {
+            format!("{}_responder", self.send())
+        }
+    }
+
+    #[derive(Debug, serde::Deserialize, Clone)]
+    struct TokenResult {
+        result: TokenData,
+    }
+
+    #[derive(Debug, serde::Deserialize, Clone)]
+    struct TokenData {
+        /// the host name of the queue
+        pub host_name: String,
+        /// the url query params comprising a SAS token (signature)
+        pub params: TokenParams,
+        /// the time to live for this signature (in seconds)
+        pub ttl: i64,
+    }
+
+    #[derive(Debug, serde::Deserialize, Clone)]
+    struct TokenParams {
+        /// Version of the signature
+        pub sv: String,
+        /// Service type
+        pub ss: String,
+        /// Types
+        pub srt: String,
+        /// Permissions
+        pub sp: String,
+        /// Valid after datetime
+        pub st: String,
+        /// Valid before datetime
+        pub se: String,
+        /// Protocol type (https)
+        pub spr: String,
+        /// Signature
+        pub sig: String,
+    }
+
+    #[derive(Debug, serde::Deserialize)]
+    struct QueueMessageList {
+        pub queue_message: QueueMessage,
+    }
+
+    #[derive(Debug, serde::Deserialize)]
+    struct QueueMessage {
+        pub message_id: String,
+        pub insertion_time: String,
+        pub expiration_time: String,
+        pub pop_receipt: String,
+        pub time_next_visible: String,
+        pub dequeue_count: i64,
+        pub message_text: String,
+    }
+
+    impl AzureQueueClient {
+        const TOKEN_URL: &'static str = "https://mfa.akamai.com/api/v1/device/azq/token";
+
+        pub fn new() -> Self {
+            Self {
+                client: reqwest::Client::new(),
+                token: None,
+            }
+        }
+
+        async fn create_queue_inner(&mut self, queue_uuid: Uuid) -> Result<(), Error> {
+            let queue = QueueName(queue_uuid);
+
+            //check whether token is about to expire or not
+            // if yes, fetch new token or re-use previous token
+            let token_data = self.get_token().await?;
+            let params = token_data.params;
+
+            let query = format!(
+                "?sv={}&ss={}&srt={}&sp={}&se={}&st{}&spr={}&sig={}",
+                params.sv,
+                params.ss,
+                params.srt,
+                params.sp,
+                params.se,
+                params.st,
+                params.spr,
+                params.sig
+            );
+            let url = format!("https://{}/{}{}", token_data.host_name, queue.send(), query);
+
+            let _ = self.client.put(url).send().await?;
+
+            Ok(())
+        }
+
+        //fetch token from azure
+        async fn get_token(&mut self) -> Result<TokenData, Error> {
+            match self.token.clone() {
+                Some(token_data) => {
+                    let valid_before = chrono::NaiveDateTime::parse_from_str(
+                        &token_data.result.params.se,
+                        "%Y-%m-%dT%H:%M:%SZ",
+                    )
+                    .expect("Couldn't parse date");
+                    //check if token is about to expire
+                    if chrono::Utc::now().naive_utc() < valid_before {
+                        return Ok(token_data.result);
+                    }
+                }
+                None => {}
+            }
+            let token_result: TokenResult = self
+                .client
+                .get(Self::TOKEN_URL)
+                .send()
+                .await?
+                .json()
+                .await?;
+
+            // update token
+            self.token = Some(token_result.clone());
+
+            Ok(token_result.result)
+        }
+
+        async fn send_inner(
+            &mut self,
+            queue_name: &str,
+            _device_token: Option<String>,
+            message: WireMessage,
+        ) -> Result<(), Error> {
+            //check whether token is about to expire or not
+            // if yes, fetch new token or re-use previous token
+            let token_data = self.get_token().await?;
+            let params = token_data.params;
+
+            let query = format!(
+                "?sv={}&ss={}&srt={}&sp={}&se={}&st{}&spr={}&sig={}",
+                params.sv,
+                params.ss,
+                params.srt,
+                params.sp,
+                params.se,
+                params.st,
+                params.spr,
+                params.sig
+            );
+            let url = format!("https://{}/{}{}", token_data.host_name, queue_name, query);
+
+            let message = Base64Buffer(message.into_wire()).to_string();
+            let _ = self.client.post(url).body(message).send().await?;
+
+            Ok(())
+        }
+
+        async fn receive_inner<T, F>(
+            &mut self,
+            queue_name: &str,
+            on_messages: F,
+        ) -> Result<T, Error>
+        where
+            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
+        {
+            //check whether token is about to expire or not
+            // if yes, fetch new token or re-use previous token
+            let token_data = self.get_token().await?;
+            let params = token_data.params;
+
+            let query = format!(
+                "?sv={}&ss={}&srt={}&sp={}&se={}&st{}&spr={}&sig={}",
+                params.sv,
+                params.ss,
+                params.srt,
+                params.sp,
+                params.se,
+                params.st,
+                params.spr,
+                params.sig
+            );
+
+            let url = format!(
+                "https://{}/{}{}&timeout=10",
+                token_data.host_name, queue_name, query
+            );
+
+            // only try for 60s
+            let timeout = 60i64;
+            let mut duration = 0i64;
+            while duration < timeout {
+                let now = chrono::Utc::now().timestamp();
+
+                let res = self.client.get(&url).send().await?.text().await?;
+                let data: QueueMessageList =
+                    serde_xml_rs::from_reader(res.as_bytes()).expect("Couldn't parse xml response");
+                let message: Vec<u8> = data.queue_message.message_text.as_bytes().to_vec();
+                // Maybe delete the message as soon as we read them?
+                let wire: Vec<WireMessage> = vec![WireMessage::new(message).unwrap()];
+
+                duration += chrono::Utc::now().timestamp() - now;
+
+                if let Some(res) = on_messages(&wire)? {
+                    return Ok(res);
+                }
+            }
+
+            Err(Error::ResponseTimedOut)
+        }
+    }
+    #[async_trait]
+    impl Transport for AzureQueueClient {
+        // create queue
+        async fn create_queue(&mut self, queue_uuid: Uuid) -> Result<(), Error> {
+            self.create_queue_inner(queue_uuid).await
+        }
+
+        async fn send(
+            &mut self,
+            device_token: Option<String>,
+            queue_uuid: Uuid,
+            message: WireMessage,
+        ) -> Result<(), Error> {
+            let queue = QueueName(queue_uuid);
+            self.send_inner(&queue.send(), device_token, message).await
+        }
+
+        async fn receive<T, F>(&mut self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
+        where
+            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
+        {
+            let queue = QueueName(queue_uuid);
+            self.receive_inner(&queue.receive(), on_messages).await
+        }
+
+        async fn health_check(&mut self) -> Result<(), Error> {
+            // TODO : implement this @nikhilty
+            Ok(())
+        }
     }
 }

@@ -16,15 +16,15 @@ pub struct Opts {
 
 #[derive(Clap)]
 pub enum Command {
-    /// pair with your phone/tablet
+    /// Pair with your phone/tablet
     Pair {
         /// Run the setup step before pairing
         #[clap(long)]
         setup: bool,
     },
-    /// load keys from the Akamai MFA app on your phone/tablet
+    /// Load keys from the Akamai MFA app on your phone/tablet
     Load,
-    /// generate a new SSH credential
+    /// Generate a new SSH credential
     Generate {
         /// a common name for the credential
         #[clap(long)]
@@ -33,11 +33,11 @@ pub enum Command {
     /// Setup the background daemon and ssh configuration
     Setup(SetupArgs),
 
-    /// start the ssh-agent daemon
+    /// Start the ssh-agent daemon
     /// Note: don't run this manually, see `setup` to
     /// install this as a background service
     Start,
-    /// get pairing info from your phone/tablet
+    /// Get pairing info from your phone/tablet
     Status,
     /// Health check of all the dep systems and system configs
     Check,
