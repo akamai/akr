@@ -2,6 +2,7 @@
 
 use crate::error::Error;
 use askama::Template;
+use std::fs;
 
 #[derive(Debug, Clone)]
 pub struct Daemon {
@@ -64,29 +65,35 @@ impl From<Daemon> for LaunchAgent {
 impl LaunchAgent {
     fn install(&self) -> Result<(), Error> {
         let dirs = directories::UserDirs::new().ok_or(Error::CannotCreateHomeDir)?;
-        let path = dirs
+
+        let launch_agents_path = dirs
             .home_dir()
             .join("Library")
-            .join("LaunchAgents")
-            .join(format!("{}.plist", &self.label));
+            .join("LaunchAgents");
 
-        if path.exists() {
+        if !launch_agents_path.exists() {
+            let _ = fs::create_dir_all(launch_agents_path.to_path_buf());
+        }
+
+        let plist_path = launch_agents_path.join(format!("{}.plist", &self.label));
+
+        if plist_path.exists() {
             // first unload if already there
             let _ = std::process::Command::new("launchctl")
                 .arg("unload")
                 .arg("-w")
-                .arg(&path)
+                .arg(&plist_path)
                 .output()?;
         }
 
         let contents = self.render()?;
-        std::fs::write(&path, contents)?;
+        std::fs::write(&plist_path, contents)?;
 
         // then reload
         let _ = std::process::Command::new("launchctl")
             .arg("load")
             .arg("-w")
-            .arg(&path)
+            .arg(&plist_path)
             .output()?;
 
         Ok(())
