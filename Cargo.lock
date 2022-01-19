@@ -22,6 +22,7 @@ dependencies = [
 name = "akr"
 version = "0.1.0"
 dependencies = [
+ "ansi_term",
  "askama",
  "async-trait",
  "base64",
@@ -30,8 +31,9 @@ dependencies = [
  "chrono",
  "clap",
  "directories",
+ "dirs 3.0.2",
  "eagre-asn1",
- "env_logger 0.8.3",
+ "env_logger 0.8.4",
  "futures",
  "mac-notification-sys",
  "notify-rust",
@@ -43,6 +45,7 @@ dependencies = [
  "rusoto_sns",
  "rusoto_sqs",
  "serde",
+ "serde-xml-rs",
  "serde_bytes",
  "serde_json",
  "sodiumoxide",
@@ -51,6 +54,15 @@ dependencies = [
  "tokio",
  "uuid",
  "whoami",
+]
+
+[[package]]
+name = "ansi_term"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d52a9bb7ec0cf484c551830a7ce27bd20d67eac647e1befb56b0be4ee39a55d2"
+dependencies = [
+ "winapi",
 ]
 
 [[package]]
@@ -423,9 +435,9 @@ dependencies = [
 
 [[package]]
 name = "crypto-mac"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4857fd85a0c34b3c3297875b747c1e02e06b6a0ea32dd892d8192b9ce0813ea6"
+checksum = "bff07008ec701e8028e2ceb8f83f0e4274ee62bd2dbdc4fefff2e9a91824081a"
 dependencies = [
  "generic-array",
  "subtle",
@@ -484,6 +496,15 @@ dependencies = [
  "libc",
  "redox_users 0.3.5",
  "winapi",
+]
+
+[[package]]
+name = "dirs"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30baa043103c9d0c2a57cf537cc2f35623889dc0d405e6c3cccfadbc81c71309"
+dependencies = [
+ "dirs-sys",
 ]
 
 [[package]]
@@ -581,9 +602,9 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.8.3"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17392a012ea30ef05a610aa97dfb49496e71c9f676b27879922ea5bdf60d9d3f"
+checksum = "a19187fea3ac7e84da7dacf48de0c45d63c6a76f9490dae389aead16c243fce3"
 dependencies = [
  "atty",
  "humantime",
@@ -1048,7 +1069,7 @@ checksum = "3dfb6b71a9a89cd38b395d994214297447e8e63b1ba5708a9a2b0b1048ceda76"
 dependencies = [
  "cc",
  "chrono",
- "dirs",
+ "dirs 1.0.5",
  "objc-foundation",
 ]
 
@@ -1744,7 +1765,7 @@ dependencies = [
  "rustc_version 0.2.3",
  "serde",
  "sha2",
- "time 0.2.26",
+ "time 0.2.27",
  "tokio",
 ]
 
@@ -1920,6 +1941,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec7505abeacaec74ae4778d9d9328fe5a5d04253220a85c4ee022239fc996d03"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde-xml-rs"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3adb528249756f81ba25e0359e7d7462d0a27a47e8843c4c7c44b5aaf146d4ee"
+dependencies = [
+ "log 0.4.14",
+ "serde",
+ "thiserror",
+ "xml-rs 0.8.3",
 ]
 
 [[package]]
@@ -2272,9 +2305,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.2.26"
+version = "0.2.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08a8cbfbf47955132d0202d1662f49b2423ae35862aee471f3ba4b133358f372"
+checksum = "4752a97f8eebd6854ff91f1c1824cd6160626ac4bd44287f7f4ea2035a02a242"
 dependencies = [
  "const_fn",
  "libc",
@@ -2297,9 +2330,9 @@ dependencies = [
 
 [[package]]
 name = "time-macros-impl"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5c3be1edfad6027c69f5491cf4cb310d1a71ecd6af742788c6ff8bced86b8fa"
+checksum = "fd3c141a1b43194f3f56a1411225df8646c55781d5f26db825b3d98507eb482f"
 dependencies = [
  "proc-macro-hack",
  "proc-macro2",
