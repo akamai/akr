@@ -2,22 +2,25 @@ use crate::error::Error;
 use crate::protocol::Base64Buffer;
 use crate::protocol::WireMessage;
 use async_trait::async_trait;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use urlencoding::encode;
 use uuid::Uuid;
+
 #[async_trait]
 pub trait Transport {
-    async fn create_queue(&mut self, queue_uuid: Uuid) -> Result<(), Error>;
+    async fn create_queue(&self, queue_uuid: Uuid) -> Result<(), Error>;
     async fn send(
-        &mut self,
+        &self,
         device_token: Option<String>,
         queue_uuid: Uuid,
         message: WireMessage,
     ) -> Result<(), Error>;
-    async fn receive<T, F>(&mut self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
+    async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
     where
         F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send;
 
-    async fn health_check(&mut self) -> Result<(), Error>;
+    async fn health_check(&self) -> Result<(), Error>;
 }
 
 pub mod pzqueue {
@@ -105,12 +108,12 @@ pub mod pzqueue {
 
     #[async_trait]
     impl Transport for PZQueueClient {
-        async fn create_queue(&mut self, _: Uuid) -> Result<(), Error> {
+        async fn create_queue(&self, _: Uuid) -> Result<(), Error> {
             Ok(())
         }
 
         async fn send(
-            &mut self,
+            &self,
             device_token: Option<String>,
             queue_uuid: Uuid,
             message: WireMessage,
@@ -119,7 +122,7 @@ pub mod pzqueue {
             self.send_inner(&queue.send(), device_token, message).await
         }
 
-        async fn receive<T, F>(&mut self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
+        async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
         where
             F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
@@ -127,7 +130,7 @@ pub mod pzqueue {
             self.receive_inner(&queue.receive(), on_messages).await
         }
 
-        async fn health_check(&mut self) -> Result<(), Error> {
+        async fn health_check(&self) -> Result<(), Error> {
             let queue_uuid = Uuid::new_v4();
             self.create_queue(queue_uuid).await?;
             let fake_message: Vec<u8> = sodiumoxide::randombytes::randombytes(4);
@@ -171,13 +174,13 @@ pub mod krypton_aws {
 
     #[async_trait]
     impl Transport for AwsClient {
-        async fn create_queue(&mut self, queue_uuid: Uuid) -> Result<(), Error> {
+        async fn create_queue(&self, queue_uuid: Uuid) -> Result<(), Error> {
             let queue = QueueName(queue_uuid);
             self.create_queue_inner(&queue).await
         }
 
         async fn send(
-            &mut self,
+            &self,
             device_token: Option<SnsEndpointArn>,
             queue_uuid: Uuid,
             message: WireMessage,
@@ -187,7 +190,7 @@ pub mod krypton_aws {
             self.send_inner(&queue.send(), device_token, message).await
         }
 
-        async fn receive<T, F>(&mut self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
+        async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
         where
             F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
@@ -196,7 +199,7 @@ pub mod krypton_aws {
             self.receive_inner(&queue.receive(), on_messages).await
         }
 
-        async fn health_check(&mut self) -> Result<(), Error> {
+        async fn health_check(&self) -> Result<(), Error> {
             let fake_message: Vec<u8> = sodiumoxide::randombytes::randombytes(4);
 
             let queue_uuid = Uuid::new_v4();
@@ -449,26 +452,41 @@ pub mod krypton_azure {
     #[derive(Clone)]
     pub struct AzureQueueClient {
         client: reqwest::Client,
-        token: Option<TokenResult>,
     }
     pub struct QueueName(Uuid);
     impl QueueName {
         pub fn send(&self) -> String {
-            self.0.to_string().to_uppercase().replace("-", "")
+            self.0.to_string().to_lowercase()
         }
 
         pub fn receive(&self) -> String {
-            format!("{}_responder", self.send())
+            format!("{}-responder", self.send())
         }
     }
 
-    #[derive(Debug, serde::Deserialize, Clone)]
-    struct TokenResult {
-        result: TokenData,
+    #[derive(Debug, serde::Deserialize)]
+    struct QueueMessageList {
+        #[serde(rename = "QueueMessage")]
+        pub queue_message: Option<QueueMessage>,
     }
 
     #[derive(Debug, serde::Deserialize, Clone)]
-    struct TokenData {
+    struct QueueMessage {
+        #[serde(rename = "MessageId")]
+        pub message_id: String,
+        #[serde(rename = "PopReceipt")]
+        pub pop_receipt: String,
+        #[serde(rename = "MessageText")]
+        pub message_text: String,
+    }
+
+    #[derive(Debug, Serialize, Deserialize, Clone)]
+    pub struct TokenResult {
+        pub result: TokenData,
+    }
+
+    #[derive(Debug, Serialize, Deserialize, Clone)]
+    pub struct TokenData {
         /// the host name of the queue
         pub host_name: String,
         /// the url query params comprising a SAS token (signature)
@@ -477,8 +495,8 @@ pub mod krypton_azure {
         pub ttl: i64,
     }
 
-    #[derive(Debug, serde::Deserialize, Clone)]
-    struct TokenParams {
+    #[derive(Debug, Serialize, Deserialize, Clone)]
+    pub struct TokenParams {
         /// Version of the signature
         pub sv: String,
         /// Service type
@@ -497,33 +515,47 @@ pub mod krypton_azure {
         pub sig: String,
     }
 
-    #[derive(Debug, serde::Deserialize)]
-    struct QueueMessageList {
-        pub queue_message: QueueMessage,
-    }
+    impl TokenResult {
+        fn path() -> Result<PathBuf, Error> {
+            let path = crate::create_home_path()?.join("azure_queue_token.json");
+            Ok(path)
+        }
 
-    #[derive(Debug, serde::Deserialize)]
-    struct QueueMessage {
-        pub message_id: String,
-        pub insertion_time: String,
-        pub expiration_time: String,
-        pub pop_receipt: String,
-        pub time_next_visible: String,
-        pub dequeue_count: i64,
-        pub message_text: String,
+        pub fn load_from_disk() -> Result<Self, Error> {
+            let path = Self::path()?;
+
+            if !std::fs::metadata(&path).is_ok() {
+                return Err(Error::CannotReadAzureToken);
+            }
+
+            let contents = std::fs::read_to_string(path)?;
+            Ok(serde_json::from_str(&contents)?)
+        }
+
+        pub fn store_to_disk(&self) -> Result<(), Error> {
+            let path = Self::path()?;
+            std::fs::write(&path, serde_json::to_string_pretty(&self)?)?;
+            Ok(())
+        }
+
+        /// check if token has crossed se time
+        pub fn is_token_expired(&self) -> bool {
+            let se = chrono::DateTime::parse_from_rfc3339(&self.result.params.se).unwrap();
+            let now = chrono::Utc::now();
+            se < now
+        }
     }
 
     impl AzureQueueClient {
-        const TOKEN_URL: &'static str = "https://mfa.akamai.com/api/v1/device/azq/token";
+        const TOKEN_URL: &'static str = "https://mfa.akamai.com/api/v1/device/krypton/azq/token";
 
         pub fn new() -> Self {
             Self {
                 client: reqwest::Client::new(),
-                token: None,
             }
         }
 
-        async fn create_queue_inner(&mut self, queue_uuid: Uuid) -> Result<(), Error> {
+        async fn create_queue_inner(&self, queue_uuid: Uuid) -> Result<(), Error> {
             let queue = QueueName(queue_uuid);
 
             //check whether token is about to expire or not
@@ -532,7 +564,7 @@ pub mod krypton_azure {
             let params = token_data.params;
 
             let query = format!(
-                "?sv={}&ss={}&srt={}&sp={}&se={}&st{}&spr={}&sig={}",
+                "?sv={}&ss={}&srt={}&sp={}&se={}&st={}&spr={}&sig={}",
                 params.sv,
                 params.ss,
                 params.srt,
@@ -540,31 +572,57 @@ pub mod krypton_azure {
                 params.se,
                 params.st,
                 params.spr,
-                params.sig
+                encode(&params.sig)
             );
-            let url = format!("https://{}/{}{}", token_data.host_name, queue.send(), query);
 
-            let _ = self.client.put(url).send().await?;
+            // create queue for sender
+            let url = format!("https://{}/{}{}", token_data.host_name, queue.send(), query);
+            let _ = self
+                .client
+                .put(url)
+                .header("content-length", 0)
+                .send()
+                .await?;
+
+            //create queue for responder
+            let url = format!(
+                "https://{}/{}{}",
+                token_data.host_name,
+                queue.receive(),
+                query
+            );
+            let _ = self
+                .client
+                .put(url)
+                .header("content-length", 0)
+                .send()
+                .await?;
 
             Ok(())
         }
 
-        //fetch token from azure
-        async fn get_token(&mut self) -> Result<TokenData, Error> {
-            match self.token.clone() {
-                Some(token_data) => {
-                    let valid_before = chrono::NaiveDateTime::parse_from_str(
-                        &token_data.result.params.se,
-                        "%Y-%m-%dT%H:%M:%SZ",
-                    )
-                    .expect("Couldn't parse date");
-                    //check if token is about to expire
-                    if chrono::Utc::now().naive_utc() < valid_before {
-                        return Ok(token_data.result);
+        /// fetch locally first and if expired/not present, fetch from remote
+        async fn get_token(&self) -> Result<TokenData, Error> {
+            match TokenResult::load_from_disk() {
+                Ok(mut data) => {
+                    if data.is_token_expired() {
+                        data = self.fetch_token().await?;
+                        data.store_to_disk()?;
+                        return Ok(data.result);
+                    } else {
+                        return Ok(data.result);
                     }
                 }
-                None => {}
+                Err(_) => {
+                    let token_data = self.fetch_token().await?;
+                    token_data.store_to_disk()?;
+                    return Ok(token_data.result);
+                }
             }
+        }
+
+        // fetch token directly from azure
+        async fn fetch_token(&self) -> Result<TokenResult, Error> {
             let token_result: TokenResult = self
                 .client
                 .get(Self::TOKEN_URL)
@@ -572,26 +630,17 @@ pub mod krypton_azure {
                 .await?
                 .json()
                 .await?;
-
-            // update token
-            self.token = Some(token_result.clone());
-
-            Ok(token_result.result)
+            Ok(token_result)
         }
 
-        async fn send_inner(
-            &mut self,
-            queue_name: &str,
-            _device_token: Option<String>,
-            message: WireMessage,
-        ) -> Result<(), Error> {
+        async fn send_inner(&self, queue_name: &str, message: WireMessage) -> Result<(), Error> {
             //check whether token is about to expire or not
             // if yes, fetch new token or re-use previous token
             let token_data = self.get_token().await?;
             let params = token_data.params;
 
             let query = format!(
-                "?sv={}&ss={}&srt={}&sp={}&se={}&st{}&spr={}&sig={}",
+                "?sv={}&ss={}&srt={}&sp={}&se={}&st={}&spr={}&sig={}",
                 params.sv,
                 params.ss,
                 params.srt,
@@ -599,21 +648,23 @@ pub mod krypton_azure {
                 params.se,
                 params.st,
                 params.spr,
-                params.sig
+                encode(&params.sig)
             );
-            let url = format!("https://{}/{}{}", token_data.host_name, queue_name, query);
+            let url = format!(
+                "https://{}/{}/messages{}",
+                token_data.host_name, queue_name, query
+            );
 
-            let message = Base64Buffer(message.into_wire()).to_string();
+            let message = format!(
+                "<QueueMessage><MessageText>{}</MessageText></QueueMessage>",
+                Base64Buffer(message.into_wire()).to_string()
+            );
             let _ = self.client.post(url).body(message).send().await?;
 
             Ok(())
         }
 
-        async fn receive_inner<T, F>(
-            &mut self,
-            queue_name: &str,
-            on_messages: F,
-        ) -> Result<T, Error>
+        async fn receive_inner<T, F>(&self, queue_name: &str, on_messages: F) -> Result<T, Error>
         where
             F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
@@ -623,7 +674,7 @@ pub mod krypton_azure {
             let params = token_data.params;
 
             let query = format!(
-                "?sv={}&ss={}&srt={}&sp={}&se={}&st{}&spr={}&sig={}",
+                "?sv={}&ss={}&srt={}&sp={}&se={}&st={}&spr={}&sig={}",
                 params.sv,
                 params.ss,
                 params.srt,
@@ -631,11 +682,11 @@ pub mod krypton_azure {
                 params.se,
                 params.st,
                 params.spr,
-                params.sig
+                encode(&params.sig)
             );
 
             let url = format!(
-                "https://{}/{}{}&timeout=10",
+                "https://{}/{}/messages{}&timeout=10",
                 token_data.host_name, queue_name, query
             );
 
@@ -645,50 +696,109 @@ pub mod krypton_azure {
             while duration < timeout {
                 let now = chrono::Utc::now().timestamp();
 
-                let res = self.client.get(&url).send().await?.text().await?;
-                let data: QueueMessageList =
-                    serde_xml_rs::from_reader(res.as_bytes()).expect("Couldn't parse xml response");
-                let message: Vec<u8> = data.queue_message.message_text.as_bytes().to_vec();
-                // Maybe delete the message as soon as we read them?
-                let wire: Vec<WireMessage> = vec![WireMessage::new(message).unwrap()];
+                let res = self.client.get(&url).send().await?;
+                let res = res.text().await?;
+                let data: QueueMessageList = serde_xml_rs::from_reader(
+                    res.replace("\u{feff}<?xml version=\"1.0\" encoding=\"utf-8\"?>", "")
+                        .as_bytes(),
+                )
+                .expect("Couldn't parse xml response");
 
-                duration += chrono::Utc::now().timestamp() - now;
+                // continue if there are messages
+                if data.queue_message.is_some() {
+                    let message = base64::decode(data.queue_message.clone().unwrap().message_text)?;
 
-                if let Some(res) = on_messages(&wire)? {
-                    return Ok(res);
+                    //delete the message from the queue
+                    self.delete_message(queue_name, &data.queue_message.unwrap())
+                        .await?;
+
+                    let wire: Vec<WireMessage> = vec![WireMessage::new(message).unwrap()];
+
+                    duration += chrono::Utc::now().timestamp() - now;
+
+                    if let Some(res) = on_messages(&wire)? {
+                        return Ok(res);
+                    }
                 }
             }
 
             Err(Error::ResponseTimedOut)
         }
+
+        //delete message from queue
+        async fn delete_message(
+            &self,
+            queue_name: &str,
+            queue_message: &QueueMessage,
+        ) -> Result<(), Error> {
+            let token_data = self.get_token().await?;
+            let params = token_data.params;
+            let query = format!(
+                "?sv={}&ss={}&srt={}&sp={}&se={}&st={}&spr={}&sig={}&popreceipt={}",
+                params.sv,
+                params.ss,
+                params.srt,
+                params.sp,
+                params.se,
+                params.st,
+                params.spr,
+                encode(&params.sig),
+                encode(&queue_message.pop_receipt)
+            );
+            let url = format!(
+                "https://{}/{}/messages/{}{}",
+                token_data.host_name, queue_name, queue_message.message_id, query
+            );
+            let _ = self.client.delete(url).send().await?;
+            Ok(())
+        }
     }
     #[async_trait]
     impl Transport for AzureQueueClient {
-        // create queue
-        async fn create_queue(&mut self, queue_uuid: Uuid) -> Result<(), Error> {
+        /// create queue
+        async fn create_queue(&self, queue_uuid: Uuid) -> Result<(), Error> {
             self.create_queue_inner(queue_uuid).await
         }
 
         async fn send(
-            &mut self,
-            device_token: Option<String>,
+            &self,
+            _device_token: Option<String>,
             queue_uuid: Uuid,
             message: WireMessage,
         ) -> Result<(), Error> {
+            self.create_queue(queue_uuid).await?;
             let queue = QueueName(queue_uuid);
-            self.send_inner(&queue.send(), device_token, message).await
+            self.send_inner(&queue.send(), message).await
         }
 
-        async fn receive<T, F>(&mut self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
+        async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
         where
             F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
+            self.create_queue(queue_uuid).await?;
             let queue = QueueName(queue_uuid);
             self.receive_inner(&queue.receive(), on_messages).await
         }
 
-        async fn health_check(&mut self) -> Result<(), Error> {
-            // TODO : implement this @nikhilty
+        async fn health_check(&self) -> Result<(), Error> {
+            let queue_uuid = Uuid::new_v4();
+            self.create_queue(queue_uuid).await?;
+            let fake_message: Vec<u8> = sodiumoxide::randombytes::randombytes(4);
+            let msg = WireMessage::SealedMessage(fake_message.clone());
+
+            let queue = QueueName(queue_uuid);
+            self.send_inner(&queue.receive(), msg).await?;
+
+            self.receive(queue_uuid, |msg| {
+                for wire_message in msg {
+                    if wire_message.clone().data().eq(&fake_message) {
+                        return Ok(Some(fake_message.clone()));
+                    }
+                }
+                Err(Error::UnexpectedResponse)
+            })
+            .await?;
+
             Ok(())
         }
     }

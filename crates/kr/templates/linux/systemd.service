@@ -4,6 +4,7 @@ Description={{bin_name}}
 [Service]
 ExecStart={{bin_path}} start
 Restart=on-failure
+User={{current_user}}
 
 [Install]
 WantedBy=default.target

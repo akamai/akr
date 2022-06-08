@@ -39,6 +39,11 @@ use ::ssh_agent::Agent as SshAgent;
 use ansi_term::Colour::{Blue, Green, Red, Yellow};
 use run_script::ScriptOptions;
 
+#[macro_use]
+extern crate bitflags;
+
+mod prompt;
+
 pub const HOME_DIR: &'static str = ".akr";
 const SSH_AGENT_PIPE: &'static str = "akr-ssh-agent.sock";
 
@@ -80,7 +85,9 @@ async fn handle_command() -> Result<(), Error> {
 }
 
 async fn pair() -> Result<(), Error> {
-    let mut client = Client::new()?;
+    // check if ssh 8.2+ is installed or not
+    check_ssh_version()?;
+    let client = Client::new()?;
     let mut already_paired = false;
     let mut paired_device_name = "".to_string();
 
@@ -121,9 +128,9 @@ async fn pair() -> Result<(), Error> {
     );
     qr2term::print_qr(raw).expect("failed to generate a qr code");
     if already_paired {
-        eprintln!("You are already paired with device {}. \nTo override, scan the above QR code to pair a new device ", Yellow.paint(paired_device_name));
+        println!("You are already paired with device {}. \nTo override, scan the above QR code to pair a new device ", Yellow.paint(paired_device_name));
     } else {
-        eprintln!(
+        println!(
             "{}",
             Green.paint("Scan the above QR code to pair your device...")
         );
@@ -182,7 +189,7 @@ async fn pair() -> Result<(), Error> {
     };
 
     id.store_to_disk()?;
-    eprintln!(
+    println!(
         "\n{} {}.\n",
         Green.paint("Paired successfully with"),
         Green.paint(id_response.data.device_name)
@@ -191,7 +198,9 @@ async fn pair() -> Result<(), Error> {
 }
 
 async fn unpair() -> Result<(), Error> {
-    let mut client = Client::new()?;
+    // check if ssh 8.2+ is installed or not
+    check_ssh_version()?;
+    let client = Client::new()?;
     let pairing = Client::pairing()?;
     let queue_uuid = pairing.queue_uuid()?;
     let request = Request::new(RequestBody::Unpair(UnpairRequest {}));
@@ -202,12 +211,15 @@ async fn unpair() -> Result<(), Error> {
         .await?;
 
     Pairing::delete_pairing_file()?;
-    eprintln!("\n{}\n", Green.paint("Unpaired successfully!"));
+    println!("\n{}\n", Green.paint("Unpaired successfully!"));
     Ok(())
 }
 
 async fn get_pairing_details() -> Result<(), Error> {
-    let mut client = Client::new()?;
+    // check if ssh 8.2+ is installed or not
+    check_ssh_version()?;
+
+    let client = Client::new()?;
 
     let id_response: IdResponse = client
         .send_request(RequestBody::Id(IdRequest {
@@ -215,7 +227,7 @@ async fn get_pairing_details() -> Result<(), Error> {
         }))
         .await?;
 
-    eprintln!(
+    println!(
         "Paired with {}",
         Green.bold().paint(id_response.data.device_name)
     );
@@ -223,7 +235,10 @@ async fn get_pairing_details() -> Result<(), Error> {
 }
 
 async fn generate(name: String) -> Result<(), Error> {
-    let mut client = Client::new()?;
+    // check if ssh 8.2+ is installed or not
+    check_ssh_version()?;
+
+    let client = Client::new()?;
     let name = format!("ssh:{}", name);
     let resp: RegisterResponse = client
         .send_request(RequestBody::Register(RegisterRequest {
@@ -244,13 +259,15 @@ async fn generate(name: String) -> Result<(), Error> {
 
     StoredIdentity::store_key_pair_handle(&key_pair)?;
 
-    eprintln!("{}", key_pair.authorized_public_key()?);
+    println!("{}", key_pair.authorized_public_key()?);
 
     Ok(())
 }
 
 async fn load_keys() -> Result<(), Error> {
-    let mut client = Client::new()?;
+    // check if ssh 8.2+ is installed or not
+    check_ssh_version()?;
+    let client = Client::new()?;
 
     let id_response: IdResponse = client
         .send_request(RequestBody::Id(IdRequest {
@@ -280,29 +297,42 @@ async fn load_keys() -> Result<(), Error> {
         if !k.application.starts_with("ssh:") {
             continue;
         }
-        eprintln!("{}", Blue.paint(k.authorized_public_key()?));
+        println!("{}", Blue.paint(k.authorized_public_key()?));
     }
 
     Ok(())
 }
 
 async fn start_daemon() {
+    // check if ssh 8.2+ is installed or not
+    check_ssh_version().expect(
+        "Failed to check ssh version. Please make sure OpenSSH 8.2+ is installed to use akr",
+    );
+
     let home = create_home_path().expect("failed to create home dir");
     let pipe = home.join(SSH_AGENT_PIPE);
 
     if std::fs::metadata(&pipe).is_ok() {
         if let Ok(_) = std::fs::remove_file(&pipe) {
-            eprintln!("Pipe deleted");
+            println!("Pipe deleted");
         }
     }
-    eprintln!("binding to {}", pipe.display());
+    println!("binding to {}", pipe.display());
     let listener = UnixListener::bind(pipe);
-    let handler = ssh_agent::Agent::new(Client::new().expect("failed to startup client"));
+    let mut handler = ssh_agent::Agent::new(Client::new().expect("failed to startup client"));
+
+    if let Some(mut dir) = dirs::home_dir() {
+        dir.push(".ssh");
+        handler.preload_user_keys_from_dir(&dir);
+    } else {
+        eprintln!("couldn't determine user home dir, no keys will be preloaded");
+    }
+
     SshAgent::run(handler, listener.unwrap()).await;
 }
 
 async fn health_check() -> Result<(), Error> {
-    let mut client = Client::new()?;
+    let client = Client::new()?;
     let mut errors_encountered = false;
 
     // check if queues are working properly or not
@@ -321,30 +351,16 @@ async fn health_check() -> Result<(), Error> {
         }
     }
 
-    // check if ssh 8.2+ is installed or not
-    let (ssh_code, ssh_output, ssh_error) = run_script::run(
-        r#"
-        [[ $(ssh -V 2>&1) =~ [0-9.]+ ]];echo $BASH_REMATCH
-         "#,
-        &vec![],
-        &ScriptOptions::new(),
-    )
-    .map_err(|error| Error::RunScriptError(error))?;
-
-    // TODO print ssh version
-    if ssh_error == "" && ssh_code == 0 {
-        match ssh_output.trim().parse::<f64>() {
-            Ok(version) => {
-                if version < 8.2 {
-                    eprintln!("{}", Red.paint("OpenSSH 8.2+ is required to use akr"));
-                    errors_encountered = true;
-                }
-            }
-            Err(error) => {
-                eprintln!("{} {}",Red.paint("Couldn't parse ssh version. Please manually check to make sure you have Openssh 8.2+ installed."), error);
-            }
+    match client.azure_health_check().await? {
+        error::QueueEvaluation::Allow => {}
+        error::QueueEvaluation::Deny(reason) => {
+            eprintln!("{}", Red.paint(reason.to_string()));
+            errors_encountered = true;
         }
     }
+
+    // check if ssh 8.2+ is installed or not
+    check_ssh_version()?;
 
     //check if the user has any keys
     let id_response: IdResponse = client
@@ -375,7 +391,7 @@ async fn health_check() -> Result<(), Error> {
     }
 
     if !errors_encountered {
-        eprintln!("{}", Green.paint("You're all set! "));
+        println!("{}", Green.paint("You're all set! "));
     }
 
     Ok(())
@@ -401,4 +417,30 @@ pub fn global_device_uuid() -> Result<Base64Buffer, Error> {
 
     let uuid = base64::decode(&std::fs::read_to_string(path)?)?;
     Ok(uuid.into())
+}
+
+fn check_ssh_version() -> Result<(), Error> {
+    let (ssh_code, ssh_output, ssh_error) = run_script::run(
+        r#"
+        [[ $(ssh -V 2>&1) =~ [0-9.]+ ]];echo $BASH_REMATCH
+         "#,
+        &vec![],
+        &ScriptOptions::new(),
+    )
+    .map_err(|error| Error::RunScriptError(error))?;
+
+    if ssh_error == "" && ssh_code == 0 {
+        match ssh_output.trim().parse::<f64>() {
+            Ok(version) => {
+                if version < 8.2 {
+                    eprintln!("{}", Red.paint("OpenSSH 8.2+ is required to use akr"));
+                }
+            }
+            Err(error) => {
+                eprintln!("{} {}",Red.paint("Couldn't parse ssh version. Please manually check to make sure you have Openssh 8.2+ installed."), error);
+            }
+        }
+    }
+
+    Ok(())
 }

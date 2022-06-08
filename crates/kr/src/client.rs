@@ -30,14 +30,14 @@ impl Client {
 }
 
 impl Client {
-    pub async fn create_queue(&mut self, uuid: Uuid) -> Result<(), Error> {
+    pub async fn create_queue(&self, uuid: Uuid) -> Result<(), Error> {
         let _ = self.aws.create_queue(uuid).await;
         let _ = self.azure.create_queue(uuid).await;
         Ok(())
     }
 
     pub async fn send(
-        &mut self,
+        &self,
         device_token: Option<String>,
         queue_uuid: Uuid,
         message: WireMessage,
@@ -55,7 +55,7 @@ impl Client {
         Ok(())
     }
 
-    pub async fn receive<T, F>(&mut self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
+    pub async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
     where
         F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send + Copy,
     {
@@ -68,7 +68,7 @@ impl Client {
         Ok(res)
     }
 
-    pub async fn send_request<R>(&mut self, request: RequestBody) -> Result<R, Error>
+    pub async fn send_request<R>(&self, request: RequestBody) -> Result<R, Error>
     where
         R: TryFrom<ResponseBody>,
         Error: From<R::Error>,
@@ -94,7 +94,7 @@ impl Client {
         Ok(std::convert::TryFrom::try_from(response.body)?)
     }
 
-    pub async fn pz_health_check(&mut self) -> Result<QueueEvaluation, Error> {
+    pub async fn pz_health_check(&self) -> Result<QueueEvaluation, Error> {
         match self.pzq.health_check().await {
             Ok(_) => Ok(QueueEvaluation::Allow),
             Err(_) => Ok(QueueEvaluation::Deny(QueueDenyError {
@@ -103,11 +103,20 @@ impl Client {
         }
     }
 
-    pub async fn aws_health_check(&mut self) -> Result<QueueEvaluation, Error> {
-        match self.pzq.health_check().await {
+    pub async fn aws_health_check(&self) -> Result<QueueEvaluation, Error> {
+        match self.aws.health_check().await {
             Ok(_) => Ok(QueueEvaluation::Allow),
             Err(_) => Ok(QueueEvaluation::Deny(QueueDenyError {
                 explanation: QueueDenyExplanation::AWSQueueDown,
+            })),
+        }
+    }
+
+    pub async fn azure_health_check(&self) -> Result<QueueEvaluation, Error> {
+        match self.azure.health_check().await {
+            Ok(_) => Ok(QueueEvaluation::Allow),
+            Err(_) => Ok(QueueEvaluation::Deny(QueueDenyError {
+                explanation: QueueDenyExplanation::AzureQueueDown,
             })),
         }
     }
