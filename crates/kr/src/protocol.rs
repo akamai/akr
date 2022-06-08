@@ -8,6 +8,12 @@ pub const PROTOCOL_VERSION: &'static str = "3.0.0";
 
 base64_serde_type!(Base64Format, STANDARD);
 
+bitflags! {
+    pub struct SignFlags: u32 {
+        const SSH_AGENT_RSA_SHA2_256 = 2;
+        const SSH_AGENT_RSA_SHA2_512 = 4;
+    }
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Base64Buffer(#[serde(with = "Base64Format")] pub Vec<u8>);

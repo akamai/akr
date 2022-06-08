@@ -1,11 +1,30 @@
 use byteorder::{BigEndian, WriteBytesExt};
-use std::io::{Cursor, Write};
+use openssl::{
+    error::ErrorStack,
+    hash::MessageDigest,
+    pkey::{PKey, Private},
+    sign::Signer,
+};
+use ssh_agent::error::HandleResult;
+use std::{
+    fs::File,
+    io::{self, Cursor, Read, Write},
+    path::Path,
+};
 
 use crate::{
     error::Error,
-    protocol::Base64Buffer,
+    prompt::PasswordPrompt,
+    protocol::{Base64Buffer, SignFlags},
     util::{read_data, read_string},
 };
+
+use ring::{
+    rand,
+    signature::{self, EcdsaKeyPair},
+};
+
+use pem;
 
 /// Represents the key pair of a sk-ecdsa-sha2-nistp256
 /// Note the private key is not actually here, because it's hardware backed
@@ -184,5 +203,239 @@ impl SshFido2KeyPairHandle {
         data.write_u32::<BigEndian>(0)?;
 
         Ok(data)
+    }
+}
+
+/// Represents a fully usable (but possibly locked) SSH key pair.
+///
+/// We always load public and private key at the same time to ensure consistency.
+pub struct SshKey {
+    /// The key format identifier. This is the first space-separated part of a `.pub` file.
+    ///
+    /// Examples: "ssh-dss", "ssh-rsa".
+    pub key_type: String,
+    /// Key data as a blob.
+    ///
+    /// This blob is in the same format that RFC4253 "6.6. Public Key Algorithms" specifies, so the
+    /// key type is stored in here as well.
+    ///
+    /// In the `.pub` file, this is stored in Base 64 encoding.
+    pub pub_blob: Vec<u8>,
+    /// Contents of the private key file
+    pub priv_file: Vec<u8>,
+    /// Comment associated with the key. The last part of a `.pub` file.
+    pub comment: String,
+    pub unlocked_key: Option<PrivateKey>,
+
+    /// For ECDSA keys.
+    pub ecdsa_key_pair: Option<EcdsaKeyPair>,
+
+    /// General key pair type
+    ///
+    /// This is a type to make it easy to store different types of key pair in the container.
+    /// Each can contain one of the types supported in this crate.
+    ///
+    /// Key pair is the so-called "private key" which contains both public and private parts of an asymmetry key.
+    pub keypair: Option<osshkeys::KeyPair>,
+}
+
+impl SshKey {
+    /// Reads the public and private part of this key from the file system.
+    pub fn from_paths<P1, P2>(pub_path: P1, priv_path: P2) -> io::Result<Self>
+    where
+        P1: AsRef<Path>,
+        P2: AsRef<Path>,
+    {
+        let (mut pub_file, mut priv_file) = (File::open(pub_path)?, File::open(priv_path)?);
+
+        let mut pub_content = String::new();
+        pub_file.read_to_string(&mut pub_content)?;
+
+        let mut priv_blob = Vec::new();
+        priv_file.read_to_end(&mut priv_blob)?;
+
+        let mut splitn = pub_content.splitn(3, ' ');
+        let key_type = splitn.next().unwrap().trim().to_string();
+        let data_encoded = splitn.next().ok_or(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "no pubkey data blob found",
+        ))?;
+        let comment = splitn.next().unwrap_or("").trim().to_string();
+
+        let pub_blob = base64::decode(data_encoded.trim())
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+        Ok(SshKey {
+            pub_blob,
+            priv_file: priv_blob,
+            unlocked_key: None,
+            key_type,
+            comment,
+            ecdsa_key_pair: None,
+            keypair: None,
+        })
+    }
+
+    /// Returns the SSH key format identifier (eg. "ssh-rsa").
+    #[allow(unused)]
+    pub fn format_identifier(&self) -> &str {
+        &self.key_type
+    }
+
+    /// Returns the key's comment.
+    ///
+    /// The comment is supposed to be a human readable string that identifies all SSH keys in use.
+    pub fn comment(&self) -> &str {
+        &self.comment
+    }
+
+    pub fn ecdsa_key_pair(&self) -> Option<&EcdsaKeyPair> {
+        self.ecdsa_key_pair.as_ref()
+    }
+
+    /// Returns the public key blob.
+    ///
+    /// This blob is used by the SSH-Agent protocol to identify keys. It is stored as a
+    /// base64-encoded string after the key type and before the optional comment.
+    pub fn pub_key_blob(&self) -> &[u8] {
+        &self.pub_blob
+    }
+
+    /// Unlocks the private key (if this didn't already happen) using pinentry
+    /// and uses the passphrase to create a keypair.
+    ///
+    /// Returns the keypair which is used for signing and future operations.
+    pub fn unlock_ed25519_key(&mut self) -> Result<Option<&osshkeys::KeyPair>, Error> {
+        // initialize the password buffer
+        let mut password_buffer = [0u8; 128];
+
+        let _ = PasswordPrompt::new(self.comment().to_string()).invoke(&mut password_buffer);
+
+        let password = String::from_utf8(password_buffer.to_vec())?;
+
+        let pass = password.as_str().trim();
+        let mut pass1 = String::from("");
+
+        for c in pass.chars() {
+            if !c.is_control() && !c.is_whitespace() {
+                pass1.push(c);
+            }
+        }
+
+        let keypair = osshkeys::KeyPair::from_keystr(
+            &String::from_utf8_lossy(self.priv_file.as_slice()),
+            Some(&pass1),
+        )?;
+
+        self.keypair = Some(keypair);
+
+        Ok(self.keypair.as_ref())
+    }
+
+    /// Unlocks the private key (if this didn't already happen) using `password_callback` to provide
+    /// the key's password, and returns a reference to the private key.
+    ///
+    /// The key will stay unlocked when this method returns.
+    pub fn unlock_with<F>(
+        &mut self,
+        password_callback: F,
+        pubkey_type: String,
+    ) -> Result<(&PrivateKey, Option<&EcdsaKeyPair>), Error>
+    where
+        F: FnOnce(&mut [u8]) -> Result<usize, ErrorStack>,
+    {
+        if let Some(ref pkey) = self.unlocked_key {
+            return Ok((pkey, self.ecdsa_key_pair()));
+        }
+
+        let pkey =
+            PKey::private_key_from_pem_callback(&self.priv_file.as_slice(), password_callback)
+                .map_err(|e| Error::SslError(e))?;
+
+        let pkcs8_bytes = &pkey.private_key_to_pem_pkcs8()?;
+        let pem_bytes = pem::parse(pkcs8_bytes.as_slice()).expect("Could not parse pem key");
+        let pkcs8_bytes = pem_bytes.contents;
+
+        self.unlocked_key = Some(PrivateKey { pkey });
+
+        if pubkey_type.contains("ecdsa") {
+            let key_pair = match pubkey_type.as_str() {
+                "ecdsa-sha2-nistp256" => Some(
+                    EcdsaKeyPair::from_pkcs8(
+                        &signature::ECDSA_P256_SHA256_ASN1_SIGNING,
+                        pkcs8_bytes.as_slice(),
+                    )
+                    .expect("Could not parse pkcs8 key"),
+                ),
+                "ecdsa-sha2-nistp384" => Some(
+                    EcdsaKeyPair::from_pkcs8(
+                        &signature::ECDSA_P384_SHA384_ASN1_SIGNING,
+                        pkcs8_bytes.as_slice(),
+                    )
+                    .expect("Could not parse pkcs8 key"),
+                ),
+                _ => None,
+            };
+
+            self.ecdsa_key_pair = key_pair;
+        }
+
+        Ok((
+            self.unlocked_key
+                .as_ref()
+                .expect("Couldn't extract the unlocked key"),
+            self.ecdsa_key_pair(),
+        ))
+    }
+}
+
+/// A private SSH key.
+pub struct PrivateKey {
+    pkey: PKey<Private>,
+}
+
+impl PrivateKey {
+    /// Signs `data` with this key, according to RFC 4253 "6.6. Public Key Algorithms".
+    pub fn sign_rsa(&self, data: &[u8], flags: &u32) -> HandleResult<(Vec<u8>, &str)> {
+        assert!(self.pkey.rsa().is_ok(), "only RSA keys are supported");
+        let flags = SignFlags::from_bits_truncate(*flags);
+
+        if flags.contains(SignFlags::SSH_AGENT_RSA_SHA2_256)
+            && flags.contains(SignFlags::SSH_AGENT_RSA_SHA2_512)
+        {
+            return Err(Error::IllegalFlags)?;
+        }
+
+        let (algo_name, digest_type) = if flags.contains(SignFlags::SSH_AGENT_RSA_SHA2_256) {
+            ("rsa-sha2-256", MessageDigest::sha256())
+        } else if flags.contains(SignFlags::SSH_AGENT_RSA_SHA2_512) {
+            ("rsa-sha2-512", MessageDigest::sha512())
+        } else {
+            ("ssh-rsa", MessageDigest::sha1())
+        };
+
+        let mut signer = Signer::new(digest_type, &self.pkey).map_err(Error::from)?;
+        signer.update(data).map_err(Error::from)?;
+        let blob = signer.sign_to_vec().map_err(Error::from)?;
+        Ok((blob, algo_name))
+    }
+
+    pub fn sign_ecdsa(
+        &self,
+        data: &[u8],
+        _flags: &u32,
+        key_pair: Option<&EcdsaKeyPair>,
+    ) -> HandleResult<Vec<u8>> {
+        let rng = rand::SystemRandom::new();
+        match key_pair {
+            Some(key_pair) => {
+                let sig = key_pair
+                    .sign(&rng, data)
+                    .map_err(|_e| Error::InvalidPairingKeys)?;
+                let signature = sig.as_ref().to_vec();
+                Ok(signature)
+            }
+            None => Err(Error::InvalidPairingKeys)?,
+        }
     }
 }

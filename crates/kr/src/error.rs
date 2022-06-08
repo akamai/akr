@@ -1,3 +1,4 @@
+use openssl::error::ErrorStack;
 use run_script::ScriptError;
 use std::convert::Infallible;
 
@@ -95,6 +96,21 @@ pub enum Error {
 
     #[error("Couldn't Parse SSH version: '{0}'")]
     RunScriptError(#[from] ScriptError),
+
+    #[error("Unable to read azure token details")]
+    CannotReadAzureToken,
+
+    #[error("Sign flags contain incompatible bits")]
+    IllegalFlags,
+
+    #[error("Openssl operation failed: {0}")]
+    SslError(#[from] ErrorStack),
+
+    #[error("Invalid Bytes")]
+    FromUtf8Error(#[from] std::string::FromUtf8Error),
+
+    #[error("Unable to parse key")]
+    OsshKeysError(#[from] osshkeys::error::Error),
 }
 
 impl From<Infallible> for Error {
@@ -115,6 +131,7 @@ impl From<Error> for ssh_agent::error::Error {
 pub enum QueueDenyExplanation {
     PZQueueDown,
     AWSQueueDown,
+    AzureQueueDown,
 }
 
 /// A richer error type for errors returned from the evaluation of user agents.
@@ -126,7 +143,8 @@ impl std::fmt::Display for QueueDenyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use QueueDenyExplanation::*;
         let explanation = match self.explanation {
-            PZQueueDown => "Akamai MFA not reachable. Please make sure you can reach mfa.akamai.com",
+            PZQueueDown  => "Akamai MFA not reachable. Please make sure you can reach mfa.akamai.com",
+            AzureQueueDown => "Azure is down or unreachable. Please make sure you can reach mfa.akamai.com & akamaikrypton.queue.core.windows.net",
             AWSQueueDown => "AWS is down or unreachable. Please make sure you can reach sqs.us-east-1.amazonaws.com ",
         };
         f.write_str(&format!("{}", explanation))

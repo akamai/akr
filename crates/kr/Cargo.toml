@@ -44,7 +44,15 @@ ansi_term = "0.12.1"
 directories = "3.0.2"
 dirs = "3.0.2"
 serde-xml-rs = "0.5.0"
-
+urlencoding = "2.1.0"
+nix = "0.22.1"
+openssl = "0.10"
+bitflags = "1"
+ecdsa = "0.13.4"
+ring = "0.16.20"
+untrusted = "0.9.0"
+pem = "1.0.2"
+osshkeys = "0.6.0"
 [target.'cfg(target_os="macos")'.dependencies]
 mac-notification-sys = "0.3.0"
 

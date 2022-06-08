@@ -1,3 +1,5 @@
+use std::io::{self, Write};
+
 use tokio::net::UnixStream;
 
 use crate::error::{ParsingError, WritingError};
@@ -70,6 +72,12 @@ async fn write_message<W: AsyncWrite + Unpin>(w: &mut W, string: &[u8]) -> Writi
     w.write_u32(string.len() as u32).await?;
     w.write_all(string).await?;
     Ok(())
+}
+
+/// This is used to format a SSH signature.
+fn write_string<W: Write>(w: &mut W, string: &[u8]) -> io::Result<()> {
+    w.write_u32::<BigEndian>(string.len() as u32)?;
+    w.write_all(string)
 }
 
 #[derive(Debug)]
@@ -147,7 +155,15 @@ pub enum Response {
     Success,
     Failure,
     Identities(Vec<Identity>),
-    SignResponse { signature: Vec<u8> },
+    SignResponse {
+        signature: Vec<u8>,
+    },
+    SignResponse2 {
+        /// Name of the signature algorithm used. This is prepended as a `string`.
+        algo_name: String,
+        /// Actual signature blob.
+        signature: Vec<u8>,
+    },
 }
 
 impl Response {
@@ -171,13 +187,20 @@ impl Response {
             }
             Response::SignResponse { ref signature } => {
                 WriteBytesExt::write_u8(&mut buf, MessageResponse::AgentSignResponse as u8)?;
-
-                // let mut full_sig = Vec::new();
-                // write_message(&mut full_sig, algo_name.as_bytes()).await?;
-                // write_message(&mut full_sig, signature).await?;
-
                 write_message(&mut buf, signature.as_slice()).await?;
-                // buf.write_all(signature.as_slice()).await?;
+            }
+
+            Response::SignResponse2 {
+                ref algo_name,
+                ref signature,
+            } => {
+                WriteBytesExt::write_u8(&mut buf, MessageResponse::AgentSignResponse as u8)?;
+
+                let mut full_sig = Vec::new();
+                write_string(&mut full_sig, algo_name.as_bytes())?;
+                write_string(&mut full_sig, signature)?;
+
+                write_string(&mut buf, &full_sig)?;
             }
         }
         stream.write_u32(buf.len() as u32).await?;

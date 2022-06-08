@@ -2,6 +2,7 @@
 
 use crate::error::Error;
 use askama::Template;
+use nix::unistd::Uid;
 
 #[derive(Debug, Clone)]
 pub struct Daemon {
@@ -125,16 +126,28 @@ impl SystemdService {
 
         let service_name = format!("{}.service", &self.bin_name);
 
-        let path = path.join(&service_name);
+        let path_to_write = path.clone().join(&service_name);
         let contents = self.render()?;
-        std::fs::write(path, contents)?;
+        std::fs::write(path_to_write, contents)?;
 
-        let _ = std::process::Command::new("systemctl")
+        if Uid::effective().is_root() {
+
+            let _= std::process::Command::new("systemctl")
+            .arg("--now")
+            .arg("enable")
+            .arg(path.join(&service_name))
+            .output()?;
+        }
+
+        else {
+            let _ = std::process::Command::new("systemctl")
             .arg("--user")
             .arg("--now")
             .arg("enable")
             .arg(service_name)
             .output()?;
+        }
+        
 
         Ok(())
     }
