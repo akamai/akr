@@ -123,7 +123,7 @@ async fn pair() -> Result<(), Error> {
 
     // print the qr code for pairing
     let raw = format!(
-        "https://mfa.akamai.com/#{}",
+        "https://mfa.akamai.com/app#{}",
         base64::encode(serde_json::to_string(&qr)?)
     );
     qr2term::print_qr(raw).expect("failed to generate a qr code");
