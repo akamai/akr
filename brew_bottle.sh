@@ -43,9 +43,7 @@ build_artifacts() {
 }
 
 create_github_release() {
-    gh release create -t "$VERSION" -n "Release $VERSION" $VERSION *.bottle.tar.gz
-    gh workflow run bottle --raw-field versionString=$VERSION
-    
+    gh release create --generate-notes $VERSION *.bottle.tar.gz
 }
 
 # tests that a command exists
