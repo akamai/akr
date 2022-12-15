@@ -140,11 +140,18 @@ jobs:
     needs: [deb, rpm]
     runs-on: ubuntu-20.04
     steps:
-      - name: upload binary (ubuntu only)
+      - name: upload deb package
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "1.5" "target"
+          gh release upload "${{ github.event.inputs.versionString }}" "./akr-deb/akr_${{ github.event.inputs.versionString }}_amd64.deb"
+
+      - name: upload rpm package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.event.inputs.versionString }}" "./akr-rpm/akr-${{ github.event.inputs.versionString}}-1.x86_64.rpm"
+
       # name: upload deb package
       # uses: actions/github-script@v1
       # with:
