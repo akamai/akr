@@ -142,17 +142,17 @@ jobs:
     steps:
       name: upload deb package
       uses: actions/github-script@v1
-      env:
-        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with: 
-        args: gh release upload ${{ github.event.inputs.versionString }} ./akr-deb/akr_${{ github.event.inputs.versionString }}_amd64.deb
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+        gh release upload ${{ github.event.inputs.versionString }} ./akr-deb/akr_${{ github.event.inputs.versionString }}_amd64.deb
     
       name: upload rpm package  
       uses: actions/github-script@v1
-      env:
-        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with: 
-        args: gh release upload ${{ github.event.inputs.versionString }} ./akr-rpm/akr-${{ github.event.inputs.versionString}}-1.x86_64.rpm
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+        gh release upload ${{ github.event.inputs.versionString }} ./akr-rpm/akr-${{ github.event.inputs.versionString}}-1.x86_64.rpm
       
   # update_release:
   #   needs: [deb, rpm]
