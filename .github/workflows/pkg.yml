@@ -1,8 +1,11 @@
 name: Packaging
 
-on:
-  release:
-    types: [published]
+on: 
+  workflow_dispatch:
+    inputs:
+      versionString:
+        description: 'The version semver string like 0.1.14'     
+        required: true  
 
 jobs:
   deb:
