@@ -145,14 +145,16 @@ jobs:
       with: 
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
-        gh release upload ${{ github.event.inputs.versionString }} target/${{ matrix.target }}/debian/*.deb
+        # gh release upload ${{ github.event.inputs.versionString }} ./akr-deb/akr_${{ github.event.inputs.versionString }}_amd64.deb
+        gh release upload 1.5 target/
     
       name: upload rpm package  
       uses: actions/github-script@v1
       with: 
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
-        gh release upload ${{ github.event.inputs.versionString }} target/generate-rpm/akr-*.rpm
+        # gh release upload ${{ github.event.inputs.versionString }} ./akr-rpm/akr-${{ github.event.inputs.versionString}}-1.x86_64.rpm
+        gh release upload 1.5 target/
       
   # update_release:
   #   needs: [deb, rpm]
