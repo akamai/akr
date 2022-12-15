@@ -1,8 +1,11 @@
 name: Packaging
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      versionString:
+        description: "The version semver string like 0.1.14"
+        required: true
 
 jobs:
   deb:
@@ -53,12 +56,20 @@ jobs:
         run: |
           # do not use exit codes while errors occured
           lintian -v target/${{ matrix.target }}/debian/*.deb || true
-      - name: Upload package
-        uses: actions/upload-artifact@v3
+      - name: Fetch latest release
+        id: fetch-latest-release
+        uses: thebritican/fetch-latest-release@v2.0.0
         with:
-          name: akr-deb
-          path: |
-            target/${{ matrix.target }}/debian/*.deb
+          github_token: ${{ github.token }}
+      - name: Upload deb asset to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.fetch-latest-release.outputs.upload_url }}
+          asset_path: target/${{ matrix.target }}/debian/akr_${{ github.event.inputs.versionString }}_amd64.deb
+          asset_name: "akr_${{github.event.inputs.versionString}}_amd64.deb"
+          asset_content_type: application/vnd.debian.binary-package
   rpm:
     name: RPM package
     env:
@@ -127,31 +138,17 @@ jobs:
         run: |
           # do not use exit codes while errors occured
           rpmlint target/generate-rpm/akr-*.rpm || true
-      - name: Upload package
-        uses: actions/upload-artifact@v3
+      - name: Fetch latest release
+        id: fetch-latest-release
+        uses: thebritican/fetch-latest-release@v2.0.0
         with:
-          name: akr-rpm
-          path: |
-            target/generate-rpm/akr-*.rpm
-  update_release:
-    needs: [deb, rpm]
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Upload deb asset
+          github_token: ${{ github.token }}
+      - name: Upload rpm asset to release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./akr-deb/akr_${{ github.event.release.tag_name }}_amd64.deb
-          asset_name: "akr_${{github.event.release.tag_name}}_amd64.deb"
-          asset_content_type: application/vnd.debian.binary-package
-      - name: Upload rpm asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          release_id: ${{ github.event.release.upload_url }}
-          asset_path: ./akr-rpm/akr-${{ github.event.release.tag_name}}-1.x86_64.rpm
-          asset_name: "akr_${{github.event.release.tag_name}}-1_amd64_fedora.rpm"
+          upload_url: ${{ steps.fetch-latest-release.outputs.upload_url }}
+          asset_path: target/generate-rpm/akr-${{ github.event.inputs.versionString}}-1.x86_64.rpm
+          asset_name: "akr_${{github.event.inputs.versionString}}-1_centos7.rpm"
           asset_content_type: application/octet-stream
