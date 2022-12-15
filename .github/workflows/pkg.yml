@@ -141,12 +141,14 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       name: upload deb package
-        run: gh release upload ${{ github.event.inputs.versionString }} ./akr-deb/akr_${{ github.event.inputs.versionString }}_amd64.deb
+        run: |
+          gh release upload ${{ github.event.inputs.versionString }} ./akr-deb/akr_${{ github.event.inputs.versionString }}_amd64.deb
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       name: upload rpm package  
-        run: gh release upload ${{ github.event.inputs.versionString }} ./akr-rpm/akr-${{ github.event.inputs.versionString}}-1.x86_64.rpm
+        run: |
+          gh release upload ${{ github.event.inputs.versionString }} ./akr-rpm/akr-${{ github.event.inputs.versionString}}-1.x86_64.rpm
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   # update_release:
