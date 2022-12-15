@@ -137,21 +137,34 @@ jobs:
     needs: [deb, rpm]
     runs-on: ubuntu-20.04
     steps:
-      - name: Upload deb asset
-        uses: actions/upload-release-asset@v1
+      name: upload deb package
+        run: gh release upload ${{ github.event.inputs.versionString }} ./akr-deb/akr_${{ github.event.inputs.versionString }}_amd64.deb
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./akr-deb/akr_${{ github.event.release.tag_name }}_amd64.deb
-          asset_name: "akr_${{github.event.release.tag_name}}_amd64.deb"
-          asset_content_type: application/vnd.debian.binary-package
-      - name: Upload rpm asset
-        uses: actions/upload-release-asset@v1
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      name: upload rpm package  
+        run: gh release upload ${{ github.event.inputs.versionString }} ./akr-rpm/akr-${{ github.event.inputs.versionString}}-1.x86_64.rpm
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          release_id: ${{ github.event.release.upload_url }}
-          asset_path: ./akr-rpm/akr-${{ github.event.release.tag_name}}-1.x86_64.rpm
-          asset_name: "akr_${{github.event.release.tag_name}}-1_amd64_fedora.rpm"
-          asset_content_type: application/octet-stream
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+  # update_release:
+  #   needs: [deb, rpm]
+  #   runs-on: ubuntu-20.04
+  #   steps:
+  #     - name: Upload deb asset
+  #       uses: actions/upload-release-asset@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       with:
+  #         upload_url: ${{ github.event.release.upload_url }}
+  #         asset_path: ./akr-deb/akr_${{ github.event.release.tag_name }}_amd64.deb
+  #         asset_name: "akr_${{github.event.release.tag_name}}_amd64.deb"
+  #         asset_content_type: application/vnd.debian.binary-package
+  #     - name: Upload rpm asset
+  #       uses: actions/upload-release-asset@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       with:
+  #         release_id: ${{ github.event.release.upload_url }}
+  #         asset_path: ./akr-rpm/akr-${{ github.event.release.tag_name}}-1.x86_64.rpm
+  #         asset_name: "akr_${{github.event.release.tag_name}}-1_amd64_fedora.rpm"
+  #         asset_content_type: application/octet-stream
