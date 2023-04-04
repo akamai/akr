@@ -4,6 +4,7 @@ use tokio::net::UnixStream;
 
 use crate::error::{ParsingError, WritingError};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 #[derive(Debug, Copy, Clone)]
@@ -45,6 +46,7 @@ impl MessageRequest {
 
 async fn read_message<R: AsyncRead + Unpin>(stream: &mut R) -> ParsingError<Vec<u8>> {
     let len = stream.read_u32().await?;
+    eprintln!("read_message len: {}", len);
 
     let mut buf = vec![0; len as usize];
     stream.read_exact(&mut buf).await?;
@@ -80,6 +82,17 @@ fn write_string<W: Write>(w: &mut W, string: &[u8]) -> io::Result<()> {
     w.write_all(string)
 }
 
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct SignRequest {
+    // Blob of the public key
+    // (encoded as per RFC4253 "6.6. Public Key Algorithms").
+    pub pubkey_blob: Vec<u8>,
+    // The data to sign.
+    pub data: Vec<u8>,
+    // Request flags.
+    pub flags: u32,
+}
+
 #[derive(Debug)]
 pub enum Request {
     RequestIdentities,
@@ -87,31 +100,32 @@ pub enum Request {
         key_type: String,
         key_contents: Vec<u8>,
     },
-    SignRequest {
-        // Blob of the public key
-        // (encoded as per RFC4253 "6.6. Public Key Algorithms").
-        pubkey_blob: Vec<u8>,
-        // The data to sign.
-        data: Vec<u8>,
-        // Request flags.
-        flags: u32,
-    },
+    SignRequest(SignRequest),
     Unknown,
 }
 impl Request {
     pub async fn read(stream: &mut UnixStream) -> ParsingError<Self> {
-        debug!("reading request");
+        eprintln!("reading request");
         let raw_msg = read_message(stream).await?;
         let mut buf = raw_msg.as_slice();
 
         let msg = ReadBytesExt::read_u8(&mut buf)?;
+
+        eprintln!("Message request id: {}", msg);
+
         match MessageRequest::from_u8(msg) {
             MessageRequest::RequestIdentities => Ok(Request::RequestIdentities),
-            MessageRequest::SignRequest => Ok(Request::SignRequest {
-                pubkey_blob: read_message(&mut buf).await?,
-                data: read_message(&mut buf).await?,
-                flags: ReadBytesExt::read_u32::<BigEndian>(&mut buf)?,
-            }),
+            MessageRequest::SignRequest => {
+                let pubkey_blob = read_message(&mut buf).await?;
+                let data = read_message(&mut buf).await?;
+                let flags = ReadBytesExt::read_u32::<BigEndian>(&mut buf)?;
+
+                Ok(Request::SignRequest(SignRequest {
+                    pubkey_blob,
+                    data,
+                    flags,
+                }))
+            }
             MessageRequest::AddIdentity | MessageRequest::AddIdConstrained => {
                 let key_type = read_string(&mut buf).await?;
                 let key_contents = buf.to_vec();
@@ -130,7 +144,7 @@ impl Request {
             MessageRequest::AddSmartcardKeyConstrained => Ok(Request::Unknown),
             MessageRequest::Extension => Ok(Request::Unknown),
             MessageRequest::Unknown => {
-                debug!("Unknown request {}", msg);
+                eprintln!("Unknown request {}", msg);
                 Ok(Request::Unknown)
             }
         }

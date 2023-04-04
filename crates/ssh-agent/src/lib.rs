@@ -1,14 +1,16 @@
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 extern crate byteorder;
 
 extern crate tokio;
 
 mod agent;
-mod protocol;
-mod handler;
 pub mod error;
+mod handler;
+mod protocol;
 
-pub use handler::SSHAgentHandler;
 pub use agent::Agent;
-pub use protocol::Response;
+pub use handler::SSHAgentHandler;
 pub use protocol::Identity;
+pub use protocol::Response;
+pub use protocol::SignRequest;

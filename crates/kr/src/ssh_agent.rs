@@ -16,6 +16,7 @@ use ssh_agent::error::HandleResult;
 use ssh_agent::Identity;
 use ssh_agent::Response;
 use ssh_agent::SSHAgentHandler;
+use ssh_agent::SignRequest;
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs;
@@ -355,6 +356,10 @@ impl SSHAgentHandler for Agent {
             })
             .collect::<Result<Vec<Identity>, Error>>()?;
 
+        // print identities
+        // for id in &identities {
+        //     println!("Fido2: {} {:?}", id.key_comment, id.key_blob);
+        // }
         let keys = self
             .ssh_keys
             .iter()
@@ -366,21 +371,38 @@ impl SSHAgentHandler for Agent {
             })
             .collect::<Result<Vec<Identity>, Error>>()?;
 
+        // for key in &keys {
+        //     println!("Local Identity: {} {:?}", key.key_comment, key.key_blob);
+        // }
+
         // push keys to ids
-        identities.extend(keys);
+        identities.append(&mut keys.clone());
 
-        let ids = identities
-            .iter()
-            .map(|id| {
-                Ok(Identity {
-                    key_comment: id.key_comment.clone(),
-                    key_blob: id.key_blob.clone(),
-                })
-            })
-            .collect::<Result<Vec<Identity>, Error>>()
-            .map(Response::Identities)?;
+        // print identities
+        // for id in &identities {
+        //     eprintln!("Identity: {}", id.key_comment);
+        // }
 
-        Ok(ids)
+        // print size of identities
+        eprintln!("Number of Keys: {}", identities.len());
+
+        Ok(Response::Identities(identities))
+
+        // let ids = identities
+        //     .iter()
+        //     .map(|id| {
+        //         // print id
+        //         eprintln!("id comment: {}", id.key_comment.clone());
+        //         eprintln!("id blob: {:?}", id.key_blob.clone());
+        //         Ok(Identity {
+        //             key_comment: id.key_comment.clone(),
+        //             key_blob: id.key_blob.clone(),
+        //         })
+        //     })
+        //     .collect::<Result<Vec<Identity>, Error>>()
+        //     .map(Response::Identities)?;
+
+        // Ok(ids)
     }
 
     async fn add_identity(
@@ -418,12 +440,7 @@ impl SSHAgentHandler for Agent {
         Ok(Response::Success)
     }
 
-    async fn sign_request(
-        &mut self,
-        pubkey: Vec<u8>,
-        data: Vec<u8>,
-        flags: u32,
-    ) -> HandleResult<Response> {
+    async fn sign_request(&mut self, request: SignRequest) -> HandleResult<Response> {
         /* data:
          Packet Format (SSH_MSG_USERAUTH_REQUEST):
          string    session identifier
@@ -436,8 +453,15 @@ impl SSHAgentHandler for Agent {
          string    public key to be used for authentication
         */
 
+        let pubkey = request.pubkey_blob;
+        let data = request.data;
+        let flags = request.flags;
+
         let mut cursor = Cursor::new(pubkey.clone());
         let pubkey_type = read_string(&mut cursor)?;
+
+        // print pubkey
+        println!("pubkey: {}", pubkey_type);
 
         if pubkey_type == "sk-ecdsa-sha2-nistp256@openssh.com".to_string() {
             self.sign_fido2(pubkey, data, flags).await

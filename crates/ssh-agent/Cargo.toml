@@ -15,4 +15,5 @@ env_logger = "0.4.3"
 byteorder = "1.1.0"
 tokio = { version = "1.16.1", features = ["full"] }
 async-trait = "0.1.42"
+serde = {version = "1.0.87", features = ["derive"]}
 

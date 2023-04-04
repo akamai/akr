@@ -14,15 +14,22 @@ impl Agent {
         handler: Arc<Mutex<T>>,
         mut stream: UnixStream,
     ) -> HandleResult<()> {
-        debug!("handling new connection");
+        eprintln!("handling new connection");
         loop {
-            let req = Request::read(&mut stream).await?;
-            debug!("request: {:?}", req);
+            let req = match Request::read(&mut stream).await {
+                Ok(req) => req,
+                Err(e) => {
+                    eprintln!("error while reading stream: {:?}", e);
+                    return Ok(());
+                }
+            };
+            eprintln!("handle_client request: {:?}", req);
 
             let response = handler.lock().await.handle_request(req).await?;
 
-            debug!("handler: {:?}", response);
+            eprintln!("handler: {:?}", response);
             response.write(&mut stream).await?;
+            eprintln!("wrote response");
         }
     }
 
@@ -33,7 +40,7 @@ impl Agent {
         while let Some((stream, _)) = listener.accept().await.ok() {
             match Agent::handle_client(arc_handler.clone(), stream).await {
                 Ok(_) => {}
-                Err(e) => debug!("handler: {:?}", e),
+                Err(e) => eprintln!("handler error : {:?}", e),
             };
         }
     }
