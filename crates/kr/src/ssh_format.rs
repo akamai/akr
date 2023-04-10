@@ -354,7 +354,7 @@ impl SshKey {
 
         let pkcs8_bytes = &pkey.private_key_to_pem_pkcs8()?;
         let pem_bytes = pem::parse(pkcs8_bytes.as_slice()).expect("Could not parse pem key");
-        let pkcs8_bytes = pem_bytes.contents;
+        let pkcs8_bytes = pem_bytes.contents().to_vec();
 
         self.unlocked_key = Some(PrivateKey { pkey });
 
