@@ -1,0 +1,130 @@
+name: Build
+
+on:
+  pull_request:
+    branches:
+      - '**'
+  push:
+    branches:
+      - '**'
+
+jobs:
+  deb:
+    name: Deb package
+    env:
+      CARGO_DEB_VER: 1.38.2
+      DEBIAN_FRONTEND: noninteractive
+      PKG_CONFIG_ALLOW_CROSS: 1
+    strategy:
+      matrix:
+        target:
+          - "x86_64-unknown-linux-gnu"
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Install common libs
+        run: |
+          sudo apt-get update
+          sudo apt-get install pkg-config libssl-dev lintian  libpqxx-dev libxmlsec1-dev libclang-9-dev
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          target: ${{ matrix.target }}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Restore cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install Cargo Deb
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-deb --vers=${{ env.CARGO_DEB_VER }} --locked
+
+      - name: Create package
+        uses: actions-rs/cargo@v1
+        with:
+          command: deb
+          args: -p akr --target=${{ matrix.target }}
+
+      - name: Verify package
+        run: |
+          # do not use exit codes while errors occured
+          lintian -v target/${{ matrix.target }}/debian/*.deb || true
+
+  rpm:
+    name: RPM package
+    env:
+      CARGO_GENERATE_RPM_VER: 0.6.0
+    strategy:
+      matrix:
+        image:
+          - "centos:7"
+          - "centos:8"
+          - "centos:9"
+    runs-on: ubuntu-20.04
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - name: Install libs on CentOS
+        if: startsWith(matrix.image, 'centos')
+        run: |
+          yum update -y && yum install -y epel-release && yum install -y gcc make cmake3 gcc-c++ openssl-devel gzip rpmlint
+          ln -s /usr/bin/cmake3 /usr/bin/cmake
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Restore cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          key: ${{ matrix.image }}
+
+      - name: Delete previous RPM
+        run: rm -f target/generate-rpm/*.rpm
+
+      - name: Install Cargo Generate RPM
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-generate-rpm --vers=${{ env.CARGO_GENERATE_RPM_VER }} --locked
+
+      - name: Build binary
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Remove all symbol and relocation information
+        run: strip -s target/release/akr
+
+      - name: Set compress type for CentOS 7
+        if: matrix.image == 'centos:7'
+        run: echo "CENTOS_BUILD_FLAGS=--payload-compress=gzip" >> $GITHUB_ENV
+
+      - name: Add dist to release
+        run: dist=$(rpm --eval %{?dist}); sed -i -e 's/release = "\(.*\)"/release = "\1'$dist'"/g' Cargo.toml
+
+      - name: Create package
+        uses: actions-rs/cargo@v1
+        with:
+          command: generate-rpm
+          args: -p crates/kr ${{ env.CENTOS_BUILD_FLAGS }} --package-name "akr-${{ matrix.image }}"
+
+      - name: Verify package
+        run: |
+          # do not use exit codes while errors occured
+          rpmlint target/generate-rpm/akr-*.rpm || true
