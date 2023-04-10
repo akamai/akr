@@ -66,7 +66,7 @@ jobs:
       matrix:
         image:
           - "centos:7"
-          - "centos-9-stream"
+          - "alvistack/centos-9-stream"
     runs-on: ubuntu-20.04
     container:
       image: ${{ matrix.image }}
