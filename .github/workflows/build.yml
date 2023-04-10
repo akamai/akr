@@ -125,3 +125,9 @@ jobs:
         run: |
           # do not use exit codes while errors occured
           rpmlint target/generate-rpm/akr-*.rpm || true
+
+      - name: Upload RPM
+        uses: actions/upload-artifact@v2
+        with:
+          name: akr-${{ matrix.image }}
+          path: target/generate-rpm/*.rpm
