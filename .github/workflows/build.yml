@@ -130,5 +130,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: if matrix.image == 'centos:7' then akr-rpm-centos-7 else akr-rpm-centos-9-stream
-          name: akr-rpm
           path: target/generate-rpm/*.rpm
