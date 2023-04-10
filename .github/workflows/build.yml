@@ -119,7 +119,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: generate-rpm
-          args: -p crates/kr ${{ env.CENTOS_BUILD_FLAGS }} --package-name "akr-${{ matrix.image }}"
+          args: -p crates/kr ${{ env.CENTOS_BUILD_FLAGS }}
 
       - name: Verify package
         run: |
