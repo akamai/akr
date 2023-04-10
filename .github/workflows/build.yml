@@ -59,7 +59,7 @@ jobs:
   rpm:
     name: RPM package
     env:
-      CARGO_GENERATE_RPM_VER: 0.6.0
+      CARGO_GENERATE_RPM_VER: 0.7.0
     strategy:
       matrix:
         image:
