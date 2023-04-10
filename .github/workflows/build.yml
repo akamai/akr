@@ -55,6 +55,12 @@ jobs:
         run: |
           # do not use exit codes while errors occured
           lintian -v target/${{ matrix.target }}/debian/*.deb || true
+      
+      - name: Upload asset
+        uses: actions/upload-artifact@v2
+        with: 
+          name: akr-deb
+          path: target/${{ matrix.target }}/debian/*.deb
 
   rpm:
     name: RPM package
