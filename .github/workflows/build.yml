@@ -3,10 +3,10 @@ name: Build
 on:
   pull_request:
     branches:
-      - '**'
+      - "**"
   push:
     branches:
-      - '**'
+      - "**"
 
 jobs:
   deb:
@@ -66,8 +66,7 @@ jobs:
       matrix:
         image:
           - "centos:7"
-          - "centos:8"
-          - "centos:9"
+          - "centos-9-stream"
     runs-on: ubuntu-20.04
     container:
       image: ${{ matrix.image }}
