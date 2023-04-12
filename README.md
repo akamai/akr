@@ -114,6 +114,29 @@ sudo yum -y install akr
 sudo yum -y install pinentry-gtk
 ```
 
+
+### CentOS-9/RHEL-9
+
+```sh
+sudo vim /etc/yum.repos.d/akr.repo
+
+[akr]
+name=akr repository
+baseurl=https://akamai.github.io/akr-pkg/rpm-9/
+gpgcheck=0
+enabled=1
+```
+
+```sh
+sudo yum -y update
+```
+
+```sh
+sudo yum -y install akr
+sudo yum -y install pinentry-gtk
+```
+
+
 ### Build from source
 
 `akr` is built entirely with Rust. Ensure you have Rust installed (https://rustup.rs) and run `cargo build`.
