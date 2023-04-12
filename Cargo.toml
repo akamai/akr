@@ -49,4 +49,4 @@ pem = "2.0.1"
 osshkeys = "0.6.0"
 
 # macOS
-mac-notification-sys = "0.3.0"
+mac-notification-sys = "0.5.6"
