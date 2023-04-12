@@ -137,5 +137,5 @@ jobs:
       - name: Upload RPM
         uses: actions/upload-artifact@v2
         with:
-          name: akr-rpm-${{ matrix.image == 'centos:7' && 'centos-7' || 'centos-9-stream' }}
+          name: akr-${{ matrix.image == 'centos:7' && 'centos-7' || 'centos-9-stream' }}
           path: target/generate-rpm/*.rpm
