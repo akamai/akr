@@ -151,5 +151,5 @@ jobs:
         with:
           upload_url: ${{ steps.fetch-latest-release.outputs.upload_url }}
           asset_path: target/generate-rpm/akr-${{ github.event.inputs.versionString}}-1.x86_64.rpm
-          asset_name: "akr_${{github.event.inputs.versionString}}-{{ matrix.image == 'centos:7' && 'centos-7' || 'centos-9-stream' }}.rpm"
+          asset_name: "akr_${{github.event.inputs.versionString}}-${{ matrix.image == 'centos:7' && 'centos-7' || 'centos-9-stream' }}.rpm"
           asset_content_type: application/octet-stream
