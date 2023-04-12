@@ -19,9 +19,9 @@ base64 = "0.13.0"
 base64-serde = "0.6.1"
 thiserror = "1.0.40"
 rusoto = "0.24.2"
-rusoto_core = { version = "0.46.0", default_features = false, features = ["rustls"] }
-rusoto_sqs = { version = "0.46.0", default_features = false, features = ["rustls"] }
-rusoto_sns = { version = "0.46.0", default_features = false, features = ["rustls"] }
+rusoto_core = { version = "0.48.0", default_features = false, features = ["rustls"] }
+rusoto_sqs = { version = "0.48.0", default_features = false, features = ["rustls"] }
+rusoto_sns = { version = "0.48.0", default_features = false, features = ["rustls"] }
 futures = "0.3.28"
 chrono = "0.4.24"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
