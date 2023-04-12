@@ -27,22 +27,7 @@ not. If allowed, the phone simply sends the signature back to the agent. _Privat
 3. Scan the QR code with the [Akamai MFA app](https://mfa.akamai.com/app)
 4. Run `akr generate --name mykey` to generate your first SSH key in Akamai MFA. This will output your SSH **public** key.
 5. Add your public key to a server or `github.com`
-
-## Verify everything works
-
-To verify whether your Akamai MFA FIDO2 key works, try the following:
-
-```sh
-$ ssh ssh.demo.krypt.co -p 5000
-```
-
-If everything works correctly, you should see something like this:
-
-```sh
-Hello John!
-
-You have successfully authenticated to the Akamai MFA SSH FIDO2 test server!
-```
+6. You're all set!
 
 ## Overview of Commands
 
