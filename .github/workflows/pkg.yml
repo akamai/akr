@@ -73,11 +73,12 @@ jobs:
   rpm:
     name: RPM package
     env:
-      CARGO_GENERATE_RPM_VER: 0.6.0
+      CARGO_GENERATE_RPM_VER: 0.7.0
     strategy:
       matrix:
         image:
           - "centos:7"
+          - "alvistack/centos-9-stream"
     runs-on: ubuntu-20.04
     container:
       image: ${{ matrix.image }}
@@ -150,5 +151,5 @@ jobs:
         with:
           upload_url: ${{ steps.fetch-latest-release.outputs.upload_url }}
           asset_path: target/generate-rpm/akr-${{ github.event.inputs.versionString}}-1.x86_64.rpm
-          asset_name: "akr_${{github.event.inputs.versionString}}-1_centos7.rpm"
+          asset_name: "akr_${{github.event.inputs.versionString}}-${{ matrix.image == 'centos:7' && 'centos-7' || 'centos-9-stream' }}.rpm"
           asset_content_type: application/octet-stream
