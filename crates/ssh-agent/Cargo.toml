@@ -2,17 +2,15 @@
 name = "ssh_agent"
 version = "0.1.0"
 authors = ["Nicolas Trippar <ntrippar@gmail.com>", "Alex Grinman <me@alexgr.in>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 name = "ssh_agent"
 path = "src/lib.rs"
 
-
 [dependencies]
-log = "0.3.8"
-env_logger = "0.4.3"
-byteorder = "1.1.0"
-tokio = { version = "1.16.1", features = ["full"] }
-async-trait = "0.1.42"
-
+log.workspace = true
+env_logger.workspace = true
+byteorder.workspace = true
+tokio.workspace = true
+async-trait.workspace = true
