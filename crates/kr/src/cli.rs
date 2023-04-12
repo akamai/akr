@@ -4,7 +4,7 @@ use clap::Clap;
 /// as do all doc strings on fields
 #[derive(Clap)]
 #[clap(
-    version = "1.1.1",
+    version = "1.1.2",
     author = "Akamai MFA <mfa.akamai.com/help>",
     name = "akr - Akamai Krypton"
 )]
