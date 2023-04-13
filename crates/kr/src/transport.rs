@@ -158,6 +158,7 @@ pub mod pzqueue {
 }
 
 pub mod krypton_aws {
+    use base64::Engine;
     use super::*;
     use rusoto_core::credential::StaticProvider;
     use rusoto_core::{HttpClient, Region};
@@ -282,7 +283,7 @@ pub mod krypton_aws {
             sns_endpoint_arn: Option<String>,
             message: WireMessage,
         ) -> Result<(), Error> {
-            let message = base64::engine::Engine::encode(self, message.into_wire());
+            let message = base64::engine::general_purpose::STANDARD.encode(message.into_wire());
             let _ = self
                 .sqs
                 .send_message(SendMessageRequest {
@@ -366,7 +367,7 @@ pub mod krypton_aws {
                 let wire_messages: Vec<WireMessage> = messages
                     .into_iter()
                     .filter_map(|m| m.body)
-                    .filter_map(|m| base64::engine::Engine::decode(self, &m).ok())
+                    .filter_map(|m| base64::engine::general_purpose::STANDARD.decode(&m).ok())
                     .filter_map(|m| WireMessage::new(m).ok())
                     .collect();
 
@@ -449,6 +450,7 @@ pub mod krypton_aws {
 }
 
 pub mod krypton_azure {
+    use base64::Engine;
     use super::*;
     use uuid::Uuid;
 
@@ -711,7 +713,7 @@ pub mod krypton_azure {
 
                 // continue if there are messages
                 if data.queue_message.is_some() {
-                    let message = base64::engine::Engine::decode(self, data.queue_message.clone().unwrap().message_text)?;
+                    let message = base64::engine::general_purpose::STANDARD.decode(data.queue_message.clone().unwrap().message_text)?;
 
                     //delete the message from the queue
                     self.delete_message(queue_name, &data.queue_message.unwrap())

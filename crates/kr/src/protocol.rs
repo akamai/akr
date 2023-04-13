@@ -2,6 +2,7 @@ use crate::error::Error;
 use base64_serde::base64_serde_type;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, convert::TryFrom};
+use base64::Engine;
 
 pub const PROTOCOL_VERSION: &'static str = "3.0.0";
 
@@ -25,7 +26,7 @@ impl From<Vec<u8>> for Base64Buffer {
 
 impl ToString for Base64Buffer {
     fn to_string(&self) -> String {
-        base64::engine::Engine::encode(self, &self.0)
+        base64::engine::general_purpose::STANDARD.encode(&self.0)
     }
 }
 
@@ -45,7 +46,7 @@ pub struct Request {
 impl Request {
     pub fn new(body: RequestBody) -> Self {
         Self {
-            id: base64::engine::Engine::encode(&Self, sodiumoxide::randombytes::randombytes(32)),
+            id: base64::engine::general_purpose::STANDARD.encode(sodiumoxide::randombytes::randombytes(32)),
             send_ack: false,
             unix_seconds: chrono::Utc::now().timestamp(),
             version: PROTOCOL_VERSION.to_string(),

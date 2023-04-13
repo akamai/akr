@@ -38,6 +38,7 @@ use crate::{
 use crate::identity::StoredIdentity;
 use ::ssh_agent::Agent as SshAgent;
 use ansi_term::Colour::{Blue, Green, Red, Yellow};
+use base64::Engine;
 use run_script::ScriptOptions;
 
 #[macro_use]
@@ -125,7 +126,7 @@ async fn pair() -> Result<(), Error> {
     // print the qr code for pairing
     let raw = format!(
         "https://mfa.akamai.com/app#{}",
-        base64::engine::Engine::encode(&Self, serde_json::to_string(&qr)?)
+        base64::engine::general_purpose::STANDARD.encode(serde_json::to_string(&qr)?)
     );
     qr2term::print_qr(raw).expect("failed to generate a qr code");
     if already_paired {
@@ -416,7 +417,7 @@ pub fn global_device_uuid() -> Result<Base64Buffer, Error> {
         return Ok(uuid);
     }
 
-    let uuid = base64::engine::Engine::decode(&Self, &std::fs::read_to_string(path)?)?;
+    let uuid = base64::engine::general_purpose::STANDARD.encode(&std::fs::read_to_string(path)?).into_bytes();
     Ok(uuid.into())
 }
 

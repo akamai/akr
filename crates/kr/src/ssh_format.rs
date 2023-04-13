@@ -11,6 +11,7 @@ use std::{
     io::{self, Cursor, Read, Write},
     path::Path,
 };
+use base64::Engine;
 
 use crate::{
     error::Error,
@@ -116,7 +117,7 @@ impl SshFido2KeyPairHandle {
         data.write_all(&pad[0..pad_bytes])?;
 
         // write the acii armor
-        let body = base64::engine::Engine::encode(self, data)
+        let body = base64::engine::general_purpose::STANDARD.encode(data)
             .chars()
             .collect::<Vec<char>>()
             .chunks(70)
@@ -262,8 +263,7 @@ impl SshKey {
         ))?;
         let comment = splitn.next().unwrap_or("").trim().to_string();
 
-        let pub_blob = base64::engine::Engine::decode(&Self, data_encoded.trim())
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        let pub_blob = base64::engine::general_purpose::STANDARD.encode(data_encoded.trim()).into_bytes();
 
         Ok(SshKey {
             pub_blob,
