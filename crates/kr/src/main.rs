@@ -417,7 +417,7 @@ pub fn global_device_uuid() -> Result<Base64Buffer, Error> {
         return Ok(uuid);
     }
 
-    let uuid = base64::engine::general_purpose::STANDARD.encode(&std::fs::read_to_string(path)?).into_bytes();
+    let uuid = base64::engine::general_purpose::STANDARD.decode(&std::fs::read_to_string(path)?)?;
     Ok(uuid.into())
 }
 

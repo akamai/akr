@@ -263,7 +263,7 @@ impl SshKey {
         ))?;
         let comment = splitn.next().unwrap_or("").trim().to_string();
 
-        let pub_blob = base64::engine::general_purpose::STANDARD.encode(data_encoded.trim()).into_bytes();
+        let pub_blob = base64::engine::general_purpose::STANDARD.decode(data_encoded.trim())?;
 
         Ok(SshKey {
             pub_blob,
