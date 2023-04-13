@@ -1,3 +1,4 @@
+use base64::Engine;
 use byteorder::{BigEndian, WriteBytesExt};
 use openssl::{
     error::ErrorStack,
@@ -116,7 +117,8 @@ impl SshFido2KeyPairHandle {
         data.write_all(&pad[0..pad_bytes])?;
 
         // write the acii armor
-        let body = base64::encode(data)
+        let body = base64::engine::general_purpose::STANDARD
+            .encode(data)
             .chars()
             .collect::<Vec<char>>()
             .chunks(70)
@@ -156,9 +158,7 @@ impl SshFido2KeyPairHandle {
     }
 
     /// extract the "application" string (rp id) from a wire format public key
-    pub fn parse_application_from_public_key(
-        fmt_public_key: SshWirePublicKey,
-    ) -> Result<String, Error> {
+    pub fn parse_application_from_public_key(fmt_public_key: SshWirePublicKey) -> Result<String, Error> {
         let mut buf = Cursor::new(fmt_public_key);
         let _type = read_data(&mut buf)?;
         let _curve = read_data(&mut buf)?;
@@ -262,7 +262,8 @@ impl SshKey {
         ))?;
         let comment = splitn.next().unwrap_or("").trim().to_string();
 
-        let pub_blob = base64::decode(data_encoded.trim())
+        let pub_blob = base64::engine::general_purpose::STANDARD
+            .decode(data_encoded.trim())
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
         Ok(SshKey {
@@ -348,9 +349,8 @@ impl SshKey {
             return Ok((pkey, self.ecdsa_key_pair()));
         }
 
-        let pkey =
-            PKey::private_key_from_pem_callback(&self.priv_file.as_slice(), password_callback)
-                .map_err(|e| Error::SslError(e))?;
+        let pkey = PKey::private_key_from_pem_callback(&self.priv_file.as_slice(), password_callback)
+            .map_err(|e| Error::SslError(e))?;
 
         let pkcs8_bytes = &pkey.private_key_to_pem_pkcs8()?;
         let pem_bytes = pem::parse(pkcs8_bytes.as_slice()).expect("Could not parse pem key");

@@ -1,6 +1,7 @@
 #![allow(deprecated)]
 
 mod cli;
+
 use self::cli::*;
 
 mod ssh_agent;
@@ -37,6 +38,7 @@ use crate::{
 use crate::identity::StoredIdentity;
 use ::ssh_agent::Agent as SshAgent;
 use ansi_term::Colour::{Blue, Green, Red, Yellow};
+use base64::Engine;
 use run_script::ScriptOptions;
 
 #[macro_use]
@@ -124,16 +126,13 @@ async fn pair() -> Result<(), Error> {
     // print the qr code for pairing
     let raw = format!(
         "https://mfa.akamai.com/app#{}",
-        base64::encode(serde_json::to_string(&qr)?)
+        base64::engine::general_purpose::STANDARD.encode(serde_json::to_string(&qr)?)
     );
     qr2term::print_qr(raw).expect("failed to generate a qr code");
     if already_paired {
         println!("You are already paired with device {}. \nTo override, scan the above QR code to pair a new device ", Yellow.paint(paired_device_name));
     } else {
-        println!(
-            "{}",
-            Green.paint("Scan the above QR code to pair your device...")
-        );
+        println!("{}", Green.paint("Scan the above QR code to pair your device..."));
     }
 
     let device_public_key = client
@@ -153,9 +152,7 @@ async fn pair() -> Result<(), Error> {
     let request = Request::new(RequestBody::Id(IdRequest {
         send_sk_accounts: true,
     }));
-    client
-        .send(None, queue_uuid, pairing.seal(&request)?)
-        .await?;
+    client.send(None, queue_uuid, pairing.seal(&request)?).await?;
     let response = client
         .receive(queue_uuid, |messages| {
             pairing.find_response(&request.id, messages)
@@ -227,10 +224,7 @@ async fn get_pairing_details() -> Result<(), Error> {
         }))
         .await?;
 
-    println!(
-        "Paired with {}",
-        Green.bold().paint(id_response.data.device_name)
-    );
+    println!("Paired with {}", Green.bold().paint(id_response.data.device_name));
     Ok(())
 }
 
@@ -305,9 +299,8 @@ async fn load_keys() -> Result<(), Error> {
 
 async fn start_daemon() {
     // check if ssh 8.2+ is installed or not
-    check_ssh_version().expect(
-        "Failed to check ssh version. Please make sure OpenSSH 8.2+ is installed to use akr",
-    );
+    check_ssh_version()
+        .expect("Failed to check ssh version. Please make sure OpenSSH 8.2+ is installed to use akr");
 
     let home = create_home_path().expect("failed to create home dir");
     let pipe = home.join(SSH_AGENT_PIPE);
@@ -386,7 +379,7 @@ async fn health_check() -> Result<(), Error> {
         .collect();
 
     if id_filtered.is_empty() {
-        eprintln!("{}",Red.paint("You do not have any keys loaded in your agent. Please generate one using `akr generate --name <key_name>`"));
+        eprintln!("{}", Red.paint("You do not have any keys loaded in your agent. Please generate one using `akr generate --name <key_name>`"));
         errors_encountered = true;
     }
 
@@ -415,7 +408,7 @@ pub fn global_device_uuid() -> Result<Base64Buffer, Error> {
         return Ok(uuid);
     }
 
-    let uuid = base64::decode(&std::fs::read_to_string(path)?)?;
+    let uuid = base64::engine::general_purpose::STANDARD.decode(&std::fs::read_to_string(path)?)?;
     Ok(uuid.into())
 }
 
@@ -437,7 +430,7 @@ fn check_ssh_version() -> Result<(), Error> {
                 }
             }
             Err(error) => {
-                eprintln!("{} {}",Red.paint("Couldn't parse ssh version. Please manually check to make sure you have Openssh 8.2+ installed."), error);
+                eprintln!("{} {}", Red.paint("Couldn't parse ssh version. Please manually check to make sure you have Openssh 8.2+ installed."), error);
             }
         }
     }

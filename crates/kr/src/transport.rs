@@ -26,11 +26,14 @@ pub trait Transport {
 pub mod pzqueue {
     use super::*;
     use uuid::Uuid;
+
     #[derive(Clone)]
     pub struct PZQueueClient {
         client: reqwest::Client,
     }
+
     pub struct QueueName(Uuid);
+
     impl QueueName {
         pub fn send(&self) -> String {
             self.0.to_string().to_uppercase().replace("-", "")
@@ -156,12 +159,13 @@ pub mod pzqueue {
 
 pub mod krypton_aws {
     use super::*;
+    use base64::Engine;
     use rusoto_core::credential::StaticProvider;
     use rusoto_core::{HttpClient, Region};
     use rusoto_sns::{PublishInput, Sns, SnsClient};
     use rusoto_sqs::{
-        CreateQueueRequest, DeleteMessageBatchRequest, DeleteMessageBatchRequestEntry,
-        ReceiveMessageRequest, SendMessageRequest, Sqs, SqsClient,
+        CreateQueueRequest, DeleteMessageBatchRequest, DeleteMessageBatchRequestEntry, ReceiveMessageRequest,
+        SendMessageRequest, Sqs, SqsClient,
     };
 
     #[derive(Clone)]
@@ -224,6 +228,7 @@ pub mod krypton_aws {
     }
 
     pub struct QueueName(Uuid);
+
     impl QueueName {
         pub fn send(&self) -> String {
             self.0.to_string().to_uppercase()
@@ -245,8 +250,7 @@ pub mod krypton_aws {
         const QUEUE_URL_BASE: &'static str = "https://sqs.us-east-1.amazonaws.com/911777333295";
 
         pub fn new() -> Result<Self, Error> {
-            let provider =
-                StaticProvider::new(Self::ACCESS_KEY.into(), Self::SECRET_KEY.into(), None, None);
+            let provider = StaticProvider::new(Self::ACCESS_KEY.into(), Self::SECRET_KEY.into(), None, None);
             let sqs = SqsClient::new_with(HttpClient::new()?, provider.clone(), Region::UsEast1);
             let sns = SnsClient::new_with(HttpClient::new()?, provider.clone(), Region::UsEast1);
             Ok(Self { sqs, sns })
@@ -278,7 +282,7 @@ pub mod krypton_aws {
             sns_endpoint_arn: Option<String>,
             message: WireMessage,
         ) -> Result<(), Error> {
-            let message = base64::encode(message.into_wire());
+            let message = base64::engine::general_purpose::STANDARD.encode(message.into_wire());
             let _ = self
                 .sqs
                 .send_message(SendMessageRequest {
@@ -362,7 +366,7 @@ pub mod krypton_aws {
                 let wire_messages: Vec<WireMessage> = messages
                     .into_iter()
                     .filter_map(|m| m.body)
-                    .filter_map(|m| base64::decode(&m).ok())
+                    .filter_map(|m| base64::engine::general_purpose::STANDARD.decode(&m).ok())
                     .filter_map(|m| WireMessage::new(m).ok())
                     .collect();
 
@@ -376,11 +380,7 @@ pub mod krypton_aws {
             return Err(Error::ResponseTimedOut);
         }
 
-        async fn delete_batch(
-            &self,
-            queue_name: &str,
-            receipts: Vec<(String, String)>,
-        ) -> Result<(), Error> {
+        async fn delete_batch(&self, queue_name: &str, receipts: Vec<(String, String)>) -> Result<(), Error> {
             let _ = self
                 .sqs
                 .delete_message_batch(DeleteMessageBatchRequest {
@@ -445,15 +445,17 @@ pub mod krypton_aws {
 }
 
 pub mod krypton_azure {
-
     use super::*;
+    use base64::Engine;
     use uuid::Uuid;
 
     #[derive(Clone)]
     pub struct AzureQueueClient {
         client: reqwest::Client,
     }
+
     pub struct QueueName(Uuid);
+
     impl QueueName {
         pub fn send(&self) -> String {
             self.0.to_string().to_lowercase()
@@ -577,26 +579,11 @@ pub mod krypton_azure {
 
             // create queue for sender
             let url = format!("https://{}/{}{}", token_data.host_name, queue.send(), query);
-            let _ = self
-                .client
-                .put(url)
-                .header("content-length", 0)
-                .send()
-                .await?;
+            let _ = self.client.put(url).header("content-length", 0).send().await?;
 
             //create queue for responder
-            let url = format!(
-                "https://{}/{}{}",
-                token_data.host_name,
-                queue.receive(),
-                query
-            );
-            let _ = self
-                .client
-                .put(url)
-                .header("content-length", 0)
-                .send()
-                .await?;
+            let url = format!("https://{}/{}{}", token_data.host_name, queue.receive(), query);
+            let _ = self.client.put(url).header("content-length", 0).send().await?;
 
             Ok(())
         }
@@ -623,13 +610,7 @@ pub mod krypton_azure {
 
         // fetch token directly from azure
         async fn fetch_token(&self) -> Result<TokenResult, Error> {
-            let token_result: TokenResult = self
-                .client
-                .get(Self::TOKEN_URL)
-                .send()
-                .await?
-                .json()
-                .await?;
+            let token_result: TokenResult = self.client.get(Self::TOKEN_URL).send().await?.json().await?;
             Ok(token_result)
         }
 
@@ -706,7 +687,8 @@ pub mod krypton_azure {
 
                 // continue if there are messages
                 if data.queue_message.is_some() {
-                    let message = base64::decode(data.queue_message.clone().unwrap().message_text)?;
+                    let message = base64::engine::general_purpose::STANDARD
+                        .decode(data.queue_message.clone().unwrap().message_text)?;
 
                     //delete the message from the queue
                     self.delete_message(queue_name, &data.queue_message.unwrap())
@@ -726,11 +708,7 @@ pub mod krypton_azure {
         }
 
         //delete message from queue
-        async fn delete_message(
-            &self,
-            queue_name: &str,
-            queue_message: &QueueMessage,
-        ) -> Result<(), Error> {
+        async fn delete_message(&self, queue_name: &str, queue_message: &QueueMessage) -> Result<(), Error> {
             let token_data = self.get_token().await?;
             let params = token_data.params;
             let query = format!(
@@ -753,6 +731,7 @@ pub mod krypton_azure {
             Ok(())
         }
     }
+
     #[async_trait]
     impl Transport for AzureQueueClient {
         /// create queue
