@@ -17,8 +17,8 @@ pub trait Transport {
         message: WireMessage,
     ) -> Result<(), Error>;
     async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
-        where
-            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send;
+    where
+        F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send;
 
     async fn health_check(&self) -> Result<(), Error>;
 }
@@ -70,8 +70,8 @@ pub mod pzqueue {
         }
 
         async fn receive_inner<T, F>(&self, queue_name: &str, on_messages: F) -> Result<T, Error>
-            where
-                F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
+        where
+            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
             let url = format!("{}/{}?poll_wait_secs=10", Self::URL, queue_name);
 
@@ -126,8 +126,8 @@ pub mod pzqueue {
         }
 
         async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
-            where
-                F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
+        where
+            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
             let queue = QueueName(queue_uuid);
             self.receive_inner(&queue.receive(), on_messages).await
@@ -150,7 +150,7 @@ pub mod pzqueue {
                 }
                 Err(Error::UnexpectedResponse)
             })
-                .await?;
+            .await?;
 
             Ok(())
         }
@@ -158,14 +158,14 @@ pub mod pzqueue {
 }
 
 pub mod krypton_aws {
-    use base64::Engine;
     use super::*;
+    use base64::Engine;
     use rusoto_core::credential::StaticProvider;
     use rusoto_core::{HttpClient, Region};
     use rusoto_sns::{PublishInput, Sns, SnsClient};
     use rusoto_sqs::{
-        CreateQueueRequest, DeleteMessageBatchRequest, DeleteMessageBatchRequestEntry,
-        ReceiveMessageRequest, SendMessageRequest, Sqs, SqsClient,
+        CreateQueueRequest, DeleteMessageBatchRequest, DeleteMessageBatchRequestEntry, ReceiveMessageRequest,
+        SendMessageRequest, Sqs, SqsClient,
     };
 
     #[derive(Clone)]
@@ -195,8 +195,8 @@ pub mod krypton_aws {
         }
 
         async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
-            where
-                F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
+        where
+            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
             self.create_queue(queue_uuid).await?;
             let queue = QueueName(queue_uuid);
@@ -221,7 +221,7 @@ pub mod krypton_aws {
                 }
                 Err(Error::UnexpectedResponse)
             })
-                .await?;
+            .await?;
 
             Ok(())
         }
@@ -250,8 +250,7 @@ pub mod krypton_aws {
         const QUEUE_URL_BASE: &'static str = "https://sqs.us-east-1.amazonaws.com/911777333295";
 
         pub fn new() -> Result<Self, Error> {
-            let provider =
-                StaticProvider::new(Self::ACCESS_KEY.into(), Self::SECRET_KEY.into(), None, None);
+            let provider = StaticProvider::new(Self::ACCESS_KEY.into(), Self::SECRET_KEY.into(), None, None);
             let sqs = SqsClient::new_with(HttpClient::new()?, provider.clone(), Region::UsEast1);
             let sns = SnsClient::new_with(HttpClient::new()?, provider.clone(), Region::UsEast1);
             Ok(Self { sqs, sns })
@@ -336,8 +335,8 @@ pub mod krypton_aws {
         }
 
         async fn receive_inner<T, F>(&self, queue_name: &str, on_messages: F) -> Result<T, Error>
-            where
-                F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
+        where
+            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
             // only try for 60s
             let timeout = 60i64;
@@ -381,11 +380,7 @@ pub mod krypton_aws {
             return Err(Error::ResponseTimedOut);
         }
 
-        async fn delete_batch(
-            &self,
-            queue_name: &str,
-            receipts: Vec<(String, String)>,
-        ) -> Result<(), Error> {
+        async fn delete_batch(&self, queue_name: &str, receipts: Vec<(String, String)>) -> Result<(), Error> {
             let _ = self
                 .sqs
                 .delete_message_batch(DeleteMessageBatchRequest {
@@ -450,8 +445,8 @@ pub mod krypton_aws {
 }
 
 pub mod krypton_azure {
-    use base64::Engine;
     use super::*;
+    use base64::Engine;
     use uuid::Uuid;
 
     #[derive(Clone)]
@@ -584,26 +579,11 @@ pub mod krypton_azure {
 
             // create queue for sender
             let url = format!("https://{}/{}{}", token_data.host_name, queue.send(), query);
-            let _ = self
-                .client
-                .put(url)
-                .header("content-length", 0)
-                .send()
-                .await?;
+            let _ = self.client.put(url).header("content-length", 0).send().await?;
 
             //create queue for responder
-            let url = format!(
-                "https://{}/{}{}",
-                token_data.host_name,
-                queue.receive(),
-                query
-            );
-            let _ = self
-                .client
-                .put(url)
-                .header("content-length", 0)
-                .send()
-                .await?;
+            let url = format!("https://{}/{}{}", token_data.host_name, queue.receive(), query);
+            let _ = self.client.put(url).header("content-length", 0).send().await?;
 
             Ok(())
         }
@@ -630,13 +610,7 @@ pub mod krypton_azure {
 
         // fetch token directly from azure
         async fn fetch_token(&self) -> Result<TokenResult, Error> {
-            let token_result: TokenResult = self
-                .client
-                .get(Self::TOKEN_URL)
-                .send()
-                .await?
-                .json()
-                .await?;
+            let token_result: TokenResult = self.client.get(Self::TOKEN_URL).send().await?.json().await?;
             Ok(token_result)
         }
 
@@ -672,8 +646,8 @@ pub mod krypton_azure {
         }
 
         async fn receive_inner<T, F>(&self, queue_name: &str, on_messages: F) -> Result<T, Error>
-            where
-                F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
+        where
+            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
             //check whether token is about to expire or not
             // if yes, fetch new token or re-use previous token
@@ -709,11 +683,12 @@ pub mod krypton_azure {
                     res.replace("\u{feff}<?xml version=\"1.0\" encoding=\"utf-8\"?>", "")
                         .as_bytes(),
                 )
-                    .expect("Couldn't parse xml response");
+                .expect("Couldn't parse xml response");
 
                 // continue if there are messages
                 if data.queue_message.is_some() {
-                    let message = base64::engine::general_purpose::STANDARD.decode(data.queue_message.clone().unwrap().message_text)?;
+                    let message = base64::engine::general_purpose::STANDARD
+                        .decode(data.queue_message.clone().unwrap().message_text)?;
 
                     //delete the message from the queue
                     self.delete_message(queue_name, &data.queue_message.unwrap())
@@ -733,11 +708,7 @@ pub mod krypton_azure {
         }
 
         //delete message from queue
-        async fn delete_message(
-            &self,
-            queue_name: &str,
-            queue_message: &QueueMessage,
-        ) -> Result<(), Error> {
+        async fn delete_message(&self, queue_name: &str, queue_message: &QueueMessage) -> Result<(), Error> {
             let token_data = self.get_token().await?;
             let params = token_data.params;
             let query = format!(
@@ -780,8 +751,8 @@ pub mod krypton_azure {
         }
 
         async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
-            where
-                F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
+        where
+            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
             self.create_queue(queue_uuid).await?;
             let queue = QueueName(queue_uuid);
@@ -805,7 +776,7 @@ pub mod krypton_azure {
                 }
                 Err(Error::UnexpectedResponse)
             })
-                .await?;
+            .await?;
 
             Ok(())
         }

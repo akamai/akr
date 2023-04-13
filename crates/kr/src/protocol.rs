@@ -1,8 +1,8 @@
 use crate::error::Error;
+use base64::Engine;
 use base64_serde::base64_serde_type;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, convert::TryFrom};
-use base64::Engine;
 
 pub const PROTOCOL_VERSION: &'static str = "3.0.0";
 

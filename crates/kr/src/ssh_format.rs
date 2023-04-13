@@ -1,3 +1,4 @@
+use base64::Engine;
 use byteorder::{BigEndian, WriteBytesExt};
 use openssl::{
     error::ErrorStack,
@@ -11,7 +12,6 @@ use std::{
     io::{self, Cursor, Read, Write},
     path::Path,
 };
-use base64::Engine;
 
 use crate::{
     error::Error,
@@ -117,7 +117,8 @@ impl SshFido2KeyPairHandle {
         data.write_all(&pad[0..pad_bytes])?;
 
         // write the acii armor
-        let body = base64::engine::general_purpose::STANDARD.encode(data)
+        let body = base64::engine::general_purpose::STANDARD
+            .encode(data)
             .chars()
             .collect::<Vec<char>>()
             .chunks(70)
@@ -157,9 +158,7 @@ impl SshFido2KeyPairHandle {
     }
 
     /// extract the "application" string (rp id) from a wire format public key
-    pub fn parse_application_from_public_key(
-        fmt_public_key: SshWirePublicKey,
-    ) -> Result<String, Error> {
+    pub fn parse_application_from_public_key(fmt_public_key: SshWirePublicKey) -> Result<String, Error> {
         let mut buf = Cursor::new(fmt_public_key);
         let _type = read_data(&mut buf)?;
         let _curve = read_data(&mut buf)?;
@@ -243,9 +242,9 @@ pub struct SshKey {
 impl SshKey {
     /// Reads the public and private part of this key from the file system.
     pub fn from_paths<P1, P2>(pub_path: P1, priv_path: P2) -> io::Result<Self>
-        where
-            P1: AsRef<Path>,
-            P2: AsRef<Path>,
+    where
+        P1: AsRef<Path>,
+        P2: AsRef<Path>,
     {
         let (mut pub_file, mut priv_file) = (File::open(pub_path)?, File::open(priv_path)?);
 
@@ -263,7 +262,9 @@ impl SshKey {
         ))?;
         let comment = splitn.next().unwrap_or("").trim().to_string();
 
-        let pub_blob = base64::engine::general_purpose::STANDARD.decode(data_encoded.trim())?;
+        let pub_blob = base64::engine::general_purpose::STANDARD
+            .decode(data_encoded.trim())
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
         Ok(SshKey {
             pub_blob,
@@ -341,16 +342,15 @@ impl SshKey {
         password_callback: F,
         pubkey_type: String,
     ) -> Result<(&PrivateKey, Option<&EcdsaKeyPair>), Error>
-        where
-            F: FnOnce(&mut [u8]) -> Result<usize, ErrorStack>,
+    where
+        F: FnOnce(&mut [u8]) -> Result<usize, ErrorStack>,
     {
         if let Some(ref pkey) = self.unlocked_key {
             return Ok((pkey, self.ecdsa_key_pair()));
         }
 
-        let pkey =
-            PKey::private_key_from_pem_callback(&self.priv_file.as_slice(), password_callback)
-                .map_err(|e| Error::SslError(e))?;
+        let pkey = PKey::private_key_from_pem_callback(&self.priv_file.as_slice(), password_callback)
+            .map_err(|e| Error::SslError(e))?;
 
         let pkcs8_bytes = &pkey.private_key_to_pem_pkcs8()?;
         let pem_bytes = pem::parse(pkcs8_bytes.as_slice()).expect("Could not parse pem key");
@@ -365,14 +365,14 @@ impl SshKey {
                         &signature::ECDSA_P256_SHA256_ASN1_SIGNING,
                         pkcs8_bytes.as_slice(),
                     )
-                        .expect("Could not parse pkcs8 key"),
+                    .expect("Could not parse pkcs8 key"),
                 ),
                 "ecdsa-sha2-nistp384" => Some(
                     EcdsaKeyPair::from_pkcs8(
                         &signature::ECDSA_P384_SHA384_ASN1_SIGNING,
                         pkcs8_bytes.as_slice(),
                     )
-                        .expect("Could not parse pkcs8 key"),
+                    .expect("Could not parse pkcs8 key"),
                 ),
                 _ => None,
             };

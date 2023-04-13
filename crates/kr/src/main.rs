@@ -71,7 +71,7 @@ async fn handle_command() -> Result<(), Error> {
                     print_only: false,
                     ssh_config_path: None,
                 })
-                    .await?
+                .await?
             }
             pair().await?
         }
@@ -132,10 +132,7 @@ async fn pair() -> Result<(), Error> {
     if already_paired {
         println!("You are already paired with device {}. \nTo override, scan the above QR code to pair a new device ", Yellow.paint(paired_device_name));
     } else {
-        println!(
-            "{}",
-            Green.paint("Scan the above QR code to pair your device...")
-        );
+        println!("{}", Green.paint("Scan the above QR code to pair your device..."));
     }
 
     let device_public_key = client
@@ -155,9 +152,7 @@ async fn pair() -> Result<(), Error> {
     let request = Request::new(RequestBody::Id(IdRequest {
         send_sk_accounts: true,
     }));
-    client
-        .send(None, queue_uuid, pairing.seal(&request)?)
-        .await?;
+    client.send(None, queue_uuid, pairing.seal(&request)?).await?;
     let response = client
         .receive(queue_uuid, |messages| {
             pairing.find_response(&request.id, messages)
@@ -229,10 +224,7 @@ async fn get_pairing_details() -> Result<(), Error> {
         }))
         .await?;
 
-    println!(
-        "Paired with {}",
-        Green.bold().paint(id_response.data.device_name)
-    );
+    println!("Paired with {}", Green.bold().paint(id_response.data.device_name));
     Ok(())
 }
 
@@ -307,9 +299,8 @@ async fn load_keys() -> Result<(), Error> {
 
 async fn start_daemon() {
     // check if ssh 8.2+ is installed or not
-    check_ssh_version().expect(
-        "Failed to check ssh version. Please make sure OpenSSH 8.2+ is installed to use akr",
-    );
+    check_ssh_version()
+        .expect("Failed to check ssh version. Please make sure OpenSSH 8.2+ is installed to use akr");
 
     let home = create_home_path().expect("failed to create home dir");
     let pipe = home.join(SSH_AGENT_PIPE);
@@ -429,7 +420,7 @@ fn check_ssh_version() -> Result<(), Error> {
         &vec![],
         &ScriptOptions::new(),
     )
-        .map_err(|error| Error::RunScriptError(error))?;
+    .map_err(|error| Error::RunScriptError(error))?;
 
     if ssh_error == "" && ssh_code == 0 {
         match ssh_output.trim().parse::<f64>() {
