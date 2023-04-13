@@ -1,6 +1,7 @@
 #![allow(deprecated)]
 
 mod cli;
+
 use self::cli::*;
 
 mod ssh_agent;
@@ -69,7 +70,7 @@ async fn handle_command() -> Result<(), Error> {
                     print_only: false,
                     ssh_config_path: None,
                 })
-                .await?
+                    .await?
             }
             pair().await?
         }
@@ -124,7 +125,7 @@ async fn pair() -> Result<(), Error> {
     // print the qr code for pairing
     let raw = format!(
         "https://mfa.akamai.com/app#{}",
-        base64::encode(serde_json::to_string(&qr)?)
+        base64::engine::Engine::encode(&Self, serde_json::to_string(&qr)?)
     );
     qr2term::print_qr(raw).expect("failed to generate a qr code");
     if already_paired {
@@ -386,7 +387,7 @@ async fn health_check() -> Result<(), Error> {
         .collect();
 
     if id_filtered.is_empty() {
-        eprintln!("{}",Red.paint("You do not have any keys loaded in your agent. Please generate one using `akr generate --name <key_name>`"));
+        eprintln!("{}", Red.paint("You do not have any keys loaded in your agent. Please generate one using `akr generate --name <key_name>`"));
         errors_encountered = true;
     }
 
@@ -415,7 +416,7 @@ pub fn global_device_uuid() -> Result<Base64Buffer, Error> {
         return Ok(uuid);
     }
 
-    let uuid = base64::decode(&std::fs::read_to_string(path)?)?;
+    let uuid = base64::engine::Engine::decode(&Self, &std::fs::read_to_string(path)?)?;
     Ok(uuid.into())
 }
 
@@ -427,7 +428,7 @@ fn check_ssh_version() -> Result<(), Error> {
         &vec![],
         &ScriptOptions::new(),
     )
-    .map_err(|error| Error::RunScriptError(error))?;
+        .map_err(|error| Error::RunScriptError(error))?;
 
     if ssh_error == "" && ssh_code == 0 {
         match ssh_output.trim().parse::<f64>() {
@@ -437,7 +438,7 @@ fn check_ssh_version() -> Result<(), Error> {
                 }
             }
             Err(error) => {
-                eprintln!("{} {}",Red.paint("Couldn't parse ssh version. Please manually check to make sure you have Openssh 8.2+ installed."), error);
+                eprintln!("{} {}", Red.paint("Couldn't parse ssh version. Please manually check to make sure you have Openssh 8.2+ installed."), error);
             }
         }
     }

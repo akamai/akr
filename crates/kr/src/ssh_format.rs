@@ -116,7 +116,7 @@ impl SshFido2KeyPairHandle {
         data.write_all(&pad[0..pad_bytes])?;
 
         // write the acii armor
-        let body = base64::encode(data)
+        let body = base64::engine::Engine::encode(self, data)
             .chars()
             .collect::<Vec<char>>()
             .chunks(70)
@@ -242,9 +242,9 @@ pub struct SshKey {
 impl SshKey {
     /// Reads the public and private part of this key from the file system.
     pub fn from_paths<P1, P2>(pub_path: P1, priv_path: P2) -> io::Result<Self>
-    where
-        P1: AsRef<Path>,
-        P2: AsRef<Path>,
+        where
+            P1: AsRef<Path>,
+            P2: AsRef<Path>,
     {
         let (mut pub_file, mut priv_file) = (File::open(pub_path)?, File::open(priv_path)?);
 
@@ -262,7 +262,7 @@ impl SshKey {
         ))?;
         let comment = splitn.next().unwrap_or("").trim().to_string();
 
-        let pub_blob = base64::decode(data_encoded.trim())
+        let pub_blob = base64::engine::Engine::decode(&Self, data_encoded.trim())
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
         Ok(SshKey {
@@ -341,8 +341,8 @@ impl SshKey {
         password_callback: F,
         pubkey_type: String,
     ) -> Result<(&PrivateKey, Option<&EcdsaKeyPair>), Error>
-    where
-        F: FnOnce(&mut [u8]) -> Result<usize, ErrorStack>,
+        where
+            F: FnOnce(&mut [u8]) -> Result<usize, ErrorStack>,
     {
         if let Some(ref pkey) = self.unlocked_key {
             return Ok((pkey, self.ecdsa_key_pair()));
@@ -365,14 +365,14 @@ impl SshKey {
                         &signature::ECDSA_P256_SHA256_ASN1_SIGNING,
                         pkcs8_bytes.as_slice(),
                     )
-                    .expect("Could not parse pkcs8 key"),
+                        .expect("Could not parse pkcs8 key"),
                 ),
                 "ecdsa-sha2-nistp384" => Some(
                     EcdsaKeyPair::from_pkcs8(
                         &signature::ECDSA_P384_SHA384_ASN1_SIGNING,
                         pkcs8_bytes.as_slice(),
                     )
-                    .expect("Could not parse pkcs8 key"),
+                        .expect("Could not parse pkcs8 key"),
                 ),
                 _ => None,
             };

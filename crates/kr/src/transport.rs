@@ -17,8 +17,8 @@ pub trait Transport {
         message: WireMessage,
     ) -> Result<(), Error>;
     async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
-    where
-        F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send;
+        where
+            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send;
 
     async fn health_check(&self) -> Result<(), Error>;
 }
@@ -26,11 +26,14 @@ pub trait Transport {
 pub mod pzqueue {
     use super::*;
     use uuid::Uuid;
+
     #[derive(Clone)]
     pub struct PZQueueClient {
         client: reqwest::Client,
     }
+
     pub struct QueueName(Uuid);
+
     impl QueueName {
         pub fn send(&self) -> String {
             self.0.to_string().to_uppercase().replace("-", "")
@@ -67,8 +70,8 @@ pub mod pzqueue {
         }
 
         async fn receive_inner<T, F>(&self, queue_name: &str, on_messages: F) -> Result<T, Error>
-        where
-            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
+            where
+                F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
             let url = format!("{}/{}?poll_wait_secs=10", Self::URL, queue_name);
 
@@ -123,8 +126,8 @@ pub mod pzqueue {
         }
 
         async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
-        where
-            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
+            where
+                F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
             let queue = QueueName(queue_uuid);
             self.receive_inner(&queue.receive(), on_messages).await
@@ -147,7 +150,7 @@ pub mod pzqueue {
                 }
                 Err(Error::UnexpectedResponse)
             })
-            .await?;
+                .await?;
 
             Ok(())
         }
@@ -191,8 +194,8 @@ pub mod krypton_aws {
         }
 
         async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
-        where
-            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
+            where
+                F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
             self.create_queue(queue_uuid).await?;
             let queue = QueueName(queue_uuid);
@@ -217,13 +220,14 @@ pub mod krypton_aws {
                 }
                 Err(Error::UnexpectedResponse)
             })
-            .await?;
+                .await?;
 
             Ok(())
         }
     }
 
     pub struct QueueName(Uuid);
+
     impl QueueName {
         pub fn send(&self) -> String {
             self.0.to_string().to_uppercase()
@@ -278,7 +282,7 @@ pub mod krypton_aws {
             sns_endpoint_arn: Option<String>,
             message: WireMessage,
         ) -> Result<(), Error> {
-            let message = base64::encode(message.into_wire());
+            let message = base64::engine::Engine::encode(self, message.into_wire());
             let _ = self
                 .sqs
                 .send_message(SendMessageRequest {
@@ -331,8 +335,8 @@ pub mod krypton_aws {
         }
 
         async fn receive_inner<T, F>(&self, queue_name: &str, on_messages: F) -> Result<T, Error>
-        where
-            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
+            where
+                F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
             // only try for 60s
             let timeout = 60i64;
@@ -362,7 +366,7 @@ pub mod krypton_aws {
                 let wire_messages: Vec<WireMessage> = messages
                     .into_iter()
                     .filter_map(|m| m.body)
-                    .filter_map(|m| base64::decode(&m).ok())
+                    .filter_map(|m| base64::engine::Engine::decode(self, &m).ok())
                     .filter_map(|m| WireMessage::new(m).ok())
                     .collect();
 
@@ -445,7 +449,6 @@ pub mod krypton_aws {
 }
 
 pub mod krypton_azure {
-
     use super::*;
     use uuid::Uuid;
 
@@ -453,7 +456,9 @@ pub mod krypton_azure {
     pub struct AzureQueueClient {
         client: reqwest::Client,
     }
+
     pub struct QueueName(Uuid);
+
     impl QueueName {
         pub fn send(&self) -> String {
             self.0.to_string().to_lowercase()
@@ -665,8 +670,8 @@ pub mod krypton_azure {
         }
 
         async fn receive_inner<T, F>(&self, queue_name: &str, on_messages: F) -> Result<T, Error>
-        where
-            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
+            where
+                F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
             //check whether token is about to expire or not
             // if yes, fetch new token or re-use previous token
@@ -702,11 +707,11 @@ pub mod krypton_azure {
                     res.replace("\u{feff}<?xml version=\"1.0\" encoding=\"utf-8\"?>", "")
                         .as_bytes(),
                 )
-                .expect("Couldn't parse xml response");
+                    .expect("Couldn't parse xml response");
 
                 // continue if there are messages
                 if data.queue_message.is_some() {
-                    let message = base64::decode(data.queue_message.clone().unwrap().message_text)?;
+                    let message = base64::engine::Engine::decode(self, data.queue_message.clone().unwrap().message_text)?;
 
                     //delete the message from the queue
                     self.delete_message(queue_name, &data.queue_message.unwrap())
@@ -753,6 +758,7 @@ pub mod krypton_azure {
             Ok(())
         }
     }
+
     #[async_trait]
     impl Transport for AzureQueueClient {
         /// create queue
@@ -772,8 +778,8 @@ pub mod krypton_azure {
         }
 
         async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
-        where
-            F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
+            where
+                F: Fn(&[WireMessage]) -> Result<Option<T>, Error> + Send,
         {
             self.create_queue(queue_uuid).await?;
             let queue = QueueName(queue_uuid);
@@ -797,7 +803,7 @@ pub mod krypton_azure {
                 }
                 Err(Error::UnexpectedResponse)
             })
-            .await?;
+                .await?;
 
             Ok(())
         }
