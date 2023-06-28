@@ -35,7 +35,7 @@ dependencies = [
  "async-trait",
  "base64 0.21.0",
  "base64-serde",
- "bitflags 2.1.0",
+ "bitflags 2.3.3",
  "byteorder 1.4.3",
  "chrono",
  "clap",
@@ -324,9 +324,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.1.0"
+version = "2.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c70beb79cbb5ce9c4f8e20849978f34225931f665bb49efa6982875a4d5facb3"
+checksum = "630be753d4e58660abd17930c71b647fe46c27ea6b63cc59e1e3851406972e42"
 
 [[package]]
 name = "block"
