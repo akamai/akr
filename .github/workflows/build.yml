@@ -58,7 +58,7 @@ jobs:
           lintian -v target/${{ matrix.target }}/debian/*.deb || true
       
       - name: Upload asset
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v4.3.6
         with: 
           name: akr-deb
           path: target/${{ matrix.target }}/debian/*.deb
@@ -135,7 +135,7 @@ jobs:
           rpmlint target/generate-rpm/akr-*.rpm || true
 
       - name: Upload RPM
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v4.3.6
         with:
           name: akr-${{ matrix.image == 'centos:7' && 'centos-7' || 'centos-9-stream' }}
           path: target/generate-rpm/*.rpm
