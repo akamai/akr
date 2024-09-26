@@ -33,7 +33,7 @@ jobs:
           target: ${{ matrix.target }}
 
       - name: Checkout
-        uses: actions/checkout@v3.5.2
+        uses: actions/checkout@v4.2.0
 
       - name: Restore cache
         uses: Swatinem/rust-cache@v2.2.1
@@ -91,7 +91,7 @@ jobs:
           override: true
 
       - name: Checkout
-        uses: actions/checkout@v3.5.2
+        uses: actions/checkout@v4.2.0
 
       - name: Restore cache
         uses: Swatinem/rust-cache@v2.2.1
