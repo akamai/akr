@@ -2,7 +2,6 @@
 
 use crate::error::Error;
 use askama::Template;
-use nix::unistd::Uid;
 
 #[derive(Debug, Clone)]
 pub struct Daemon {
@@ -65,10 +64,12 @@ impl From<Daemon> for LaunchAgent {
 impl LaunchAgent {
     fn install(&self) -> Result<(), Error> {
         let dirs = directories::UserDirs::new().ok_or(Error::CannotCreateHomeDir)?;
-        let path = dirs
+        let launch_agents_directory = dirs
             .home_dir()
             .join("Library")
-            .join("LaunchAgents")
+            .join("LaunchAgents");
+
+        let path = launch_agents_directory
             .join(format!("{}.plist", &self.label));
 
         if path.exists() {
@@ -78,6 +79,12 @@ impl LaunchAgent {
                 .arg("-w")
                 .arg(&path)
                 .output()?;
+
+        } else if launch_agents_directory.exists() == false {
+            // create the directory if it doesn't exist
+            std::fs::create_dir_all(&launch_agents_directory)?;
+        } else {
+            return Err(Error::CannotCreateHomeDir);
         }
 
         let contents = self.render()?;
