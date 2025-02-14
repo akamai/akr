@@ -33,7 +33,7 @@ qr2term = "0.3.1"
 eagre-asn1 = "0.3.0"
 reqwest = { version = "0.12.12", default_features = false, features = ["json", "rustls-tls"] }
 askama = "0.12.1"
-notify-rust = "4.8.0"
+notify-rust = "4.11.3"
 run_script = "0.10.1"
 ansi_term = "0.12.1"
 directories = "5.0.1"
