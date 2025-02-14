@@ -2,8 +2,3 @@
 [toolchain]
 channel = "stable"
 components = ["rustfmt", "clippy"]
-
-# TODO Use with actions-rs/toolchain:
-#  Support new TOML format for rust-toolchain
-#  https://github.com/actions-rs/toolchain/issues/126
-#  https://github.com/actions-rs/toolchain/pull/166
