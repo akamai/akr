@@ -33,7 +33,7 @@ dependencies = [
  "ansi_term",
  "askama",
  "async-trait",
- "base64 0.21.7",
+ "base64 0.22.1",
  "base64-serde",
  "bitflags 2.8.0",
  "byteorder 1.5.0",
