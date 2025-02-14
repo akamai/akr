@@ -99,7 +99,6 @@ sudo yum -y install akr
 sudo yum -y install pinentry-gtk
 ```
 
-
 ### CentOS-9/RHEL-9
 
 ```sh

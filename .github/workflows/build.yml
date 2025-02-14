@@ -68,7 +68,6 @@ jobs:
     strategy:
       matrix:
         image:
-          - "centos:7"
           - "alvistack/centos-9-stream"
     runs-on: ubuntu-22.04
     container:
@@ -112,10 +111,6 @@ jobs:
       - name: Remove all symbol and relocation information
         run: strip -s target/release/akr
 
-      - name: Set compress type for CentOS 7
-        if: matrix.image == 'centos:7'
-        run: echo "CENTOS_BUILD_FLAGS=--payload-compress=gzip" >> $GITHUB_ENV
-
       - name: Add dist to release
         run: dist=$(rpm --eval %{?dist}); sed -i -e 's/release = "\(.*\)"/release = "\1'$dist'"/g' Cargo.toml
 
@@ -133,5 +128,5 @@ jobs:
       - name: Upload RPM
         uses: actions/upload-artifact@v4.6.0
         with:
-          name: akr-${{ matrix.image == 'centos:7' && 'centos-7' || 'centos-9-stream' }}
+          name: akr-${{ matrix.image == 'alvistack/centos-9-stream' && 'centos-9-stream' || 'unknown' }}
           path: target/generate-rpm/*.rpm

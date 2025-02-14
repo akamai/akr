@@ -69,6 +69,7 @@ jobs:
           asset_path: target/${{ matrix.target }}/debian/akr_${{ github.event.inputs.versionString }}_amd64.deb
           asset_name: "akr_${{github.event.inputs.versionString}}_amd64.deb"
           asset_content_type: application/vnd.debian.binary-package
+
   rpm:
     name: RPM package
     env:
@@ -76,7 +77,6 @@ jobs:
     strategy:
       matrix:
         image:
-          - "centos:7"
           - "alvistack/centos-9-stream"
     runs-on: ubuntu-22.04
     container:
@@ -90,10 +90,6 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4.2.2
-
-      - name: Get Rust toolchain channel
-        run: |
-          echo "RUST_CHANNEL=$(sed -nrE 's/^channel = "(.*)"$/\1/p' "$GITHUB_WORKSPACE"/rust-toolchain.toml)" >> $GITHUB_ENV
 
       - name: Install Rust ${{ env.RUST_CHANNEL }}
         uses: dtolnay/rust-toolchain@master
@@ -118,10 +114,6 @@ jobs:
 
       - name: Remove all symbol and relocation information
         run: strip -s target/release/akr
-
-      - name: Set compress type for CentOS 7
-        if: matrix.image == 'centos:7'
-        run: echo "CENTOS_BUILD_FLAGS=--payload-compress=gzip" >> $GITHUB_ENV
 
       - name: Add dist to release
         run: dist=$(rpm --eval %{?dist}); sed -i -e 's/release = "\(.*\)"/release = "\1'$dist'"/g' Cargo.toml
@@ -148,5 +140,5 @@ jobs:
         with:
           upload_url: ${{ steps.fetch-latest-release.outputs.upload_url }}
           asset_path: target/generate-rpm/akr-${{ github.event.inputs.versionString}}-1.x86_64.rpm
-          asset_name: "akr_${{github.event.inputs.versionString}}-${{ matrix.image == 'centos:7' && 'centos-7' || 'centos-9-stream' }}.rpm"
+          asset_name: "akr_${{github.event.inputs.versionString}}-${{ matrix.image == 'alvistack/centos-9-stream' && 'centos-9-stream' || 'unknown' }}.rpm"
           asset_content_type: application/octet-stream
