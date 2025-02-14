@@ -17,7 +17,7 @@ serde-xml-rs = "0.6.0"
 async-trait = "0.1.86"
 base64 = "0.21.7"
 base64-serde = "0.7.0"
-thiserror = "1.0.69"
+thiserror = "2.0.11"
 rusoto = "0.24.2"
 rusoto_core = { version = "0.48.0", default_features = false, features = ["rustls"] }
 rusoto_sqs = { version = "0.48.0", default_features = false, features = ["rustls"] }
