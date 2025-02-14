@@ -45,7 +45,7 @@ dependencies = [
  "ecdsa",
  "env_logger",
  "futures",
- "mac-notification-sys 0.5.9",
+ "mac-notification-sys",
  "nix 0.26.4",
  "notify-rust",
  "openssl",
@@ -1742,19 +1742,6 @@ checksum = "04cbf5b083de1c7e0222a7a51dbfdba1cbe1c6ab0b15e29fff3f6c077fd9cd9f"
 
 [[package]]
 name = "mac-notification-sys"
-version = "0.5.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9402858e87f85f88bf518bd2e68450640df1c99b1ddb3ea28c4d5d823bb54cdd"
-dependencies = [
- "cc",
- "dirs-next",
- "objc-foundation",
- "objc_id",
- "time",
-]
-
-[[package]]
-name = "mac-notification-sys"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dce8f34f3717aa37177e723df6c1fc5fb02b2a1087374ea3fe0ea42316dc8f91"
@@ -1926,7 +1913,7 @@ checksum = "7fa3b9f2364a09bd359aa0206702882e208437450866a374d5372d64aece4029"
 dependencies = [
  "futures-lite",
  "log",
- "mac-notification-sys 0.6.2",
+ "mac-notification-sys",
  "serde",
  "tauri-winrt-notification",
  "zbus",
