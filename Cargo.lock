@@ -1763,9 +1763,9 @@ checksum = "afb2e1c3ee07430c2cf76151675e583e0f19985fa6efae47d6848a3e2c824f85"
 
 [[package]]
 name = "osshkeys"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a1c8b37663eeeb12076f4a95fb8a8e50cb7fc3c09b32e107409d7db70834dd8"
+checksum = "1d6d97eb6c6eedeb4eb33c2b3ecbda85fd4253b1c8fcc67c9fff3fdd58d2b5d1"
 dependencies = [
  "backtrace",
  "base64 0.13.0",
