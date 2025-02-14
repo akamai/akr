@@ -14,14 +14,18 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v4.2.2
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.7
+      - name: Get Rust toolchain channel
+        run: |
+          echo "RUST_CHANNEL=$(sed -nrE 's/^channel = "(.*)"$/\1/p' "$GITHUB_WORKSPACE"/rust-toolchain.toml)" >> $GITHUB_ENV
+
+      - name: Install Rust ${{ env.RUST_CHANNEL }}
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
+          toolchain: ${{ env.RUST_CHANNEL }}
+          components: cargo
 
       - name: bottle
         run: ./brew_bottle.sh ${{ github.event.inputs.versionString }}

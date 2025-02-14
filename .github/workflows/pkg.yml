@@ -23,23 +23,21 @@ jobs:
       - name: Install common libs
         run: |
           sudo apt-get update
-          sudo apt-get install pkg-config libssl-dev lintian  libpqxx-dev libxmlsec1-dev libclang-9-dev
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.7
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          target: ${{ matrix.target }}
+          sudo apt-get install pkg-config libssl-dev lintian  libpqxx-dev libxmlsec1-dev libclang-dev
 
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Restore cache
-        uses: Swatinem/rust-cache@v2.7.7
+      - name: Get Rust toolchain channel
+        run: |
+          echo "RUST_CHANNEL=$(sed -nrE 's/^channel = "(.*)"$/\1/p' "$GITHUB_WORKSPACE"/rust-toolchain.toml)" >> $GITHUB_ENV
+
+      - name: Install Rust ${{ env.RUST_CHANNEL }}
+        uses: dtolnay/rust-toolchain@master
         with:
-          key: ${{ matrix.target }}
+          toolchain: ${{ env.RUST_CHANNEL }}
+          targets: ${{ matrix.target }}
+          components: cargo
 
       - name: Install Cargo Deb
         uses: actions-rs/cargo@v1.0.3
@@ -90,20 +88,18 @@ jobs:
           yum update -y && yum install -y epel-release && yum install -y gcc make cmake3 gcc-c++ openssl-devel gzip rpmlint
           ln -s /usr/bin/cmake3 /usr/bin/cmake
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.7
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Restore cache
-        uses: Swatinem/rust-cache@v2.7.7
+      - name: Get Rust toolchain channel
+        run: |
+          echo "RUST_CHANNEL=$(sed -nrE 's/^channel = "(.*)"$/\1/p' "$GITHUB_WORKSPACE"/rust-toolchain.toml)" >> $GITHUB_ENV
+
+      - name: Install Rust ${{ env.RUST_CHANNEL }}
+        uses: dtolnay/rust-toolchain@master
         with:
-          key: ${{ matrix.image }}
+          toolchain: ${{ env.RUST_CHANNEL }}
+          components: cargo
 
       - name: Delete previous RPM
         run: rm -f target/generate-rpm/*.rpm
