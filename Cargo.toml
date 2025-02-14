@@ -46,7 +46,7 @@ ecdsa = "0.16.9"
 ring = "0.16.20"
 untrusted = "0.9.0"
 pem = "2.0.1"
-osshkeys = "0.6.2"
+osshkeys = "0.7.0"
 
 # macOS
 mac-notification-sys = "0.6.2"
