@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{fs, path::Path};
 
 use super::SetupArgs;
 use crate::{error::Error, launch::Daemon};
@@ -51,17 +51,29 @@ fn create_ssh_config_stanza() -> Result<String, Error> {
 
 /// add our host stanza to the config file
 pub async fn update_ssh_config(custom_path: Option<String>) -> Result<(), Error> {
+    let config_directory = directories::UserDirs::new()
+        .ok_or(Error::CannotReadHomeDir)?
+        .home_dir()
+        .join(".ssh");
+
     let path = if let Some(custom) = custom_path {
         Path::new(&custom).into()
     } else {
-        directories::UserDirs::new()
-            .ok_or(Error::CannotReadHomeDir)?
-            .home_dir()
-            .join(".ssh")
+        config_directory
             .join("config")
     };
 
-    let ssh_config = std::fs::read_to_string(&path)?;
+    let mut ssh_config = String::new();
+    if path.exists() {
+        ssh_config = std::fs::read_to_string(&path)?;
+    } else {
+        std::fs::create_dir_all(&config_directory)?;
+
+        match fs::File::create(&path) {
+            Ok(_) => println!("SSH config file created at: {:?}", path.display()),
+            Err(e) => eprintln!("Failed to create SSH config file: {}", e),
+        }
+    }
 
     // clear any existing config by us
     let mut lines: Vec<&str> = ssh_config.split("\n").collect();
@@ -97,5 +109,6 @@ pub async fn update_ssh_config(custom_path: Option<String>) -> Result<(), Error>
     };
 
     clean_config.push_str(&create_ssh_config_stanza()?);
+
     Ok(std::fs::write(&path, clean_config)?)
 }
