@@ -25,7 +25,6 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_CHANNEL }}
-          components: cargo
 
       - name: bottle
         run: ./brew_bottle.sh ${{ github.event.inputs.versionString }}

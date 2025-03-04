@@ -37,7 +37,6 @@ jobs:
         with:
           toolchain: ${{ env.RUST_CHANNEL }}
           targets: ${{ matrix.target }}
-          components: cargo
 
       - name: Install Cargo Deb
         uses: actions-rs/cargo@v1.0.3
@@ -92,7 +91,6 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_CHANNEL }}
-          components: cargo
 
       - name: Delete previous RPM
         run: rm -f target/generate-rpm/*.rpm
