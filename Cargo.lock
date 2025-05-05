@@ -53,7 +53,7 @@ dependencies = [
  "pem",
  "qr2term",
  "reqwest",
- "ring 0.16.20",
+ "ring 0.17.9",
  "run_script",
  "rusoto",
  "rusoto_core",
