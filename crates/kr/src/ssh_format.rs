@@ -360,20 +360,16 @@ impl SshKey {
 
         if pubkey_type.contains("ecdsa") {
             let key_pair = match pubkey_type.as_str() {
-                "ecdsa-sha2-nistp256" => Some(
-                    EcdsaKeyPair::from_pkcs8(
-                        &signature::ECDSA_P256_SHA256_ASN1_SIGNING,
-                        pkcs8_bytes.as_slice(),
-                    )
-                    .expect("Could not parse pkcs8 key"),
-                ),
-                "ecdsa-sha2-nistp384" => Some(
-                    EcdsaKeyPair::from_pkcs8(
-                        &signature::ECDSA_P384_SHA384_ASN1_SIGNING,
-                        pkcs8_bytes.as_slice(),
-                    )
-                    .expect("Could not parse pkcs8 key"),
-                ),
+                "ecdsa-sha2-nistp256" => {
+                    let rng = rand::SystemRandom::new();
+                    let key_pair = EcdsaKeyPair::from_pkcs8(&signature::ECDSA_P256_SHA256_ASN1_SIGNING, pkcs8_bytes.as_slice(), &rng);
+                    Some(key_pair.expect("Could not parse pkcs8 key"))
+                },
+                "ecdsa-sha2-nistp384" => {
+                    let rng = rand::SystemRandom::new();
+                    let key_pair = EcdsaKeyPair::from_pkcs8(&signature::ECDSA_P384_SHA384_ASN1_SIGNING, pkcs8_bytes.as_slice(), &rng);
+                    Some(key_pair.expect("Could not parse pkcs8 key"))
+                },
                 _ => None,
             };
 
