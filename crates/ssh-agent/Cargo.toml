@@ -1,8 +1,9 @@
 [package]
 name = "ssh_agent"
-version = "0.1.0"
-authors = ["Nicolas Trippar <ntrippar@gmail.com>", "Alex Grinman <me@alexgr.in>"]
-edition = "2021"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
 
 [lib]
 name = "ssh_agent"

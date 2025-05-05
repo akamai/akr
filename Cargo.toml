@@ -1,10 +1,18 @@
 [workspace]
+resolver = "2"
 default-members = ["crates/kr"]
 
 members = [
     "crates/kr",
     "crates/ssh-agent"
 ]
+
+[workspace.package]
+description = "Akamai MFA Developer CLI and SSH Agent"
+version = "1.1.2"
+authors = ["Akamai MFA Engineering <dl-pushmfa@akamai.com>"]
+edition = "2021"
+license = "All Rights Reserved, Akamai Technologies"
 
 [workspace.dependencies]
 clap = "3.0.0-beta.2"
@@ -18,10 +26,8 @@ async-trait = "0.1.88"
 base64 = "0.22.1"
 base64-serde = "0.7.0"
 thiserror = "2.0.12"
-rusoto = "0.24.2"
-rusoto_core = { version = "0.48.0", default_features = false, features = ["rustls"] }
-rusoto_sqs = { version = "0.48.0", default_features = false, features = ["rustls"] }
-rusoto_sns = { version = "0.48.0", default_features = false, features = ["rustls"] }
+aws-sdk-sqs = "1.65.0"
+aws-sdk-sns = "1.66.0"
 futures = "0.3.28"
 chrono = "0.4.41"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
@@ -31,7 +37,7 @@ byteorder = "1.5.0"
 whoami = "1.6.0"
 qr2term = "0.3.3"
 eagre-asn1 = "0.3.0"
-reqwest = { version = "0.12.15", default_features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12.15", default-features = false, features = ["json", "rustls-tls"] }
 askama = "0.12.1"
 notify-rust = "4.11.7"
 run_script = "0.10.1"

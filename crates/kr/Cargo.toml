@@ -1,10 +1,10 @@
 [package]
 name = "akr"
-description = "Akamai MFA Developer CLI and SSH Agent"
-version = "1.1.2"
-authors = ["Alex Grinman <agrinman@akamai.com>"]
-edition = "2021"
-license = "All Rights Reserved, Akamai Technologies"
+authors.workspace = true
+description.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
 
 [[bin]]
 name = "akr"
@@ -24,10 +24,8 @@ base64.workspace = true
 base64-serde.workspace = true
 serde_bytes.workspace = true
 thiserror.workspace = true
-rusoto.workspace = true
-rusoto_core.workspace = true
-rusoto_sqs.workspace = true
-rusoto_sns.workspace = true
+aws-sdk-sqs.workspace = true
+aws-sdk-sns.workspace = true
 futures.workspace = true
 chrono.workspace = true
 uuid.workspace = true
