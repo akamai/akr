@@ -53,7 +53,7 @@ dependencies = [
  "pem",
  "qr2term",
  "reqwest",
- "ring 0.17.9",
+ "ring 0.17.14",
  "run_script",
  "rusoto",
  "rusoto_core",
@@ -2261,7 +2261,7 @@ dependencies = [
  "bytes",
  "getrandom",
  "rand 0.8.5",
- "ring 0.17.9",
+ "ring 0.17.14",
  "rustc-hash",
  "rustls 0.23.23",
  "rustls-pki-types",
@@ -2510,9 +2510,9 @@ dependencies = [
 
 [[package]]
 name = "ring"
-version = "0.17.9"
+version = "0.17.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e75ec5e92c4d8aede845126adc388046234541629e76029599ed35a003c7ed24"
+checksum = "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7"
 dependencies = [
  "cc",
  "cfg-if",
@@ -2714,7 +2714,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47796c98c480fce5406ef69d1c76378375492c3b0a0de587be0c1d9feb12f395"
 dependencies = [
  "once_cell",
- "ring 0.17.9",
+ "ring 0.17.14",
  "rustls-pki-types",
  "rustls-webpki",
  "subtle",
@@ -2766,7 +2766,7 @@ version = "0.102.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "64ca1bc8749bd4cf37b5ce386cc146580777b4e8572c7b97baf22c83f444bee9"
 dependencies = [
- "ring 0.17.9",
+ "ring 0.17.14",
  "rustls-pki-types",
  "untrusted 0.9.0",
 ]
