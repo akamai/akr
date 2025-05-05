@@ -23,7 +23,7 @@ rusoto_core = { version = "0.48.0", default_features = false, features = ["rustl
 rusoto_sqs = { version = "0.48.0", default_features = false, features = ["rustls"] }
 rusoto_sns = { version = "0.48.0", default_features = false, features = ["rustls"] }
 futures = "0.3.28"
-chrono = "0.4.39"
+chrono = "0.4.41"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
 env_logger = "0.10.2"
 log = "0.4.27"
