@@ -117,6 +117,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           IMAGE: ${{ matrix.image == 'alvistack/centos-9-stream' && 'centos-9-stream' || 'unknown' }}
           VERSION: ${{ github.event.release.tag_name }}
+        # Marks the workspace as a safe directory to avoid the following error:
+        #
+        # failed to run git: fatal: detected dubious ownership in repository at '/__w/akr/akr'
+        # To add an exception for this directory, call:
+        # git config --global --add safe.directory /__w/akr/akr
         run: |
           mv akr.rpm akr_${VERSION}-${IMAGE}.rpm
+          git config --global --add safe.directory ${GITHUB_WORKSPACE}
           gh release upload $VERSION akr_${VERSION}-${IMAGE}.rpm
