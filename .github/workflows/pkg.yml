@@ -54,7 +54,6 @@ jobs:
           VERSION: ${{ github.event.release.tag_name }}
         run: |
           mv akr.deb akr_${VERSION}_${TARGET}.deb
-          ls *.deb
           gh release upload $VERSION akr_${VERSION}_${TARGET}.deb
 
   rpm:
@@ -68,6 +67,14 @@ jobs:
     container:
       image: ${{ matrix.image }}
     steps:
+      - name: Install gh
+        # DNF4 installation commands
+        # https://github.com/cli/cli/blob/trunk/docs/install_linux.md#dnf4
+        run: |
+          sudo dnf install 'dnf-command(config-manager)'
+          sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+          sudo dnf install gh --repo gh-cli
+
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -111,5 +118,4 @@ jobs:
           VERSION: ${{ github.event.release.tag_name }}
         run: |
           mv akr.rpm akr_${VERSION}-${IMAGE}.rpm
-          ls *.rpm
           gh release upload $VERSION akr_${VERSION}-${IMAGE}.rpm
