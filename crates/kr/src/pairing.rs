@@ -10,7 +10,6 @@ use uuid::Uuid;
 pub struct Pairing {
     pub device_public_key: Base64Buffer,
     pub device_name: String,
-    pub aws_push_id: Option<String>,
     pub device_token: Option<String>,
     #[serde(flatten)]
     pub keypair: Keypair,

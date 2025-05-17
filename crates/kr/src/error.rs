@@ -52,24 +52,6 @@ pub enum Error {
     #[error("Invalid utf8 contents: '{0}'")]
     InvalidUtf8(#[from] std::str::Utf8Error),
 
-    #[error("AWS Http TLS error: '{0}'")]
-    AwsHttpClient(#[from] rusoto_core::request::TlsError),
-
-    #[error("AWS SQS Send error: '{0}'")]
-    AwsSqsSendError(#[from] rusoto_core::RusotoError<rusoto_sqs::SendMessageError>),
-
-    #[error("AWS SQS Create Queue error: '{0}'")]
-    AwsSqsCreateQueueError(#[from] rusoto_core::RusotoError<rusoto_sqs::CreateQueueError>),
-
-    #[error("AWS SQS Receive error: '{0}'")]
-    AwsSqsReceiveError(#[from] rusoto_core::RusotoError<rusoto_sqs::ReceiveMessageError>),
-
-    #[error("AWS SQS Delete error: '{0}'")]
-    AwsSqsDeleteError(#[from] rusoto_core::RusotoError<rusoto_sqs::DeleteMessageBatchError>),
-
-    #[error("AWS SNS Publish error: '{0}'")]
-    AwsSnsPublishError(#[from] rusoto_core::RusotoError<rusoto_sns::PublishError>),
-
     #[error("UUID invalid: '{0}'")]
     InvalidUUID(#[from] uuid::Error),
 
@@ -96,9 +78,6 @@ pub enum Error {
 
     #[error("Couldn't Parse SSH version: '{0}'")]
     RunScriptError(#[from] ScriptError),
-
-    #[error("Unable to read azure token details")]
-    CannotReadAzureToken,
 
     #[error("Sign flags contain incompatible bits")]
     IllegalFlags,
@@ -129,9 +108,7 @@ impl From<Error> for ssh_agent::error::Error {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum QueueDenyExplanation {
-    PZQueueDown,
-    AWSQueueDown,
-    AzureQueueDown,
+    QueueDown,
 }
 
 /// A richer error type for errors returned from the evaluation of user agents.
@@ -143,9 +120,7 @@ impl std::fmt::Display for QueueDenyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use QueueDenyExplanation::*;
         let explanation = match self.explanation {
-            PZQueueDown  => "Akamai MFA not reachable. Please make sure you can reach mfa.akamai.com",
-            AzureQueueDown => "Azure is down or unreachable. Please make sure you can reach mfa.akamai.com & akamaikrypton.queue.core.windows.net",
-            AWSQueueDown => "AWS is down or unreachable. Please make sure you can reach sqs.us-east-1.amazonaws.com ",
+            QueueDown => "Akamai MFA not reachable. Please make sure you can reach mfa.akamai.com",
         };
         f.write_str(&format!("{}", explanation))
     }

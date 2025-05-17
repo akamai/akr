@@ -109,9 +109,6 @@ pub struct UnpairRequest {}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Response {
     pub request_id: String,
-
-    #[serde(rename = "sns_endpoint_arn")]
-    pub aws_push_id: Option<String>,
     pub device_token: Option<String>,
 
     #[serde(rename = "v")]
