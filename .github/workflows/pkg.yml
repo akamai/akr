@@ -54,6 +54,7 @@ jobs:
           VERSION: ${{ github.event.release.tag_name }}
         run: |
           mv akr.deb akr_$VERSION_$TARGET.deb
+          ls *.deb
           gh release upload $VERSION akr_$VERSION_$TARGET.deb
 
   rpm:
@@ -69,7 +70,7 @@ jobs:
     steps:
       - name: Install common libs
         run: |
-          sudo apt-get install rpmlint
+          sudo dnf install rpmlint
 
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -114,4 +115,5 @@ jobs:
           VERSION: ${{ github.event.release.tag_name }}
         run: |
           mv akr.rpm akr_$VERSION-$IMAGE.rpm
+          ls *.rpm
           gh release upload $VERSION akr_$VERSION-$IMAGE.rpm
