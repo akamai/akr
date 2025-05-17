@@ -67,10 +67,11 @@ jobs:
     container:
       image: ${{ matrix.image }}
     steps:
-      - name: Install gh
+      - name: Install CLI tools
         # DNF4 installation commands
         # https://github.com/cli/cli/blob/trunk/docs/install_linux.md#dnf4
         run: |
+          sudo dnf install git
           sudo dnf install 'dnf-command(config-manager)'
           sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
           sudo dnf install gh --repo gh-cli
