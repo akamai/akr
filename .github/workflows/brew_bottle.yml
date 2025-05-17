@@ -30,10 +30,10 @@ jobs:
         run: |
           cargo build --release
 
-          mkdir -p /tmp/akr/$VERSION/bin
-          cp ./target/release/akr /tmp/akr/$VERSION/bin/
-          tar -czf akr-$VERSION.big_sur.bottle.tar.gz -C /tmp akr
-          cp akr-$VERSION.big_sur.bottle.tar.gz akr-$VERSION.catalina.bottle.tar.gz
+          mkdir -p /tmp/akr/${VERSION}/bin
+          cp ./target/release/akr /tmp/akr/${VERSION}/bin/
+          tar -czf akr-${VERSION}.big_sur.bottle.tar.gz -C /tmp akr
+          cp akr-${VERSION}.big_sur.bottle.tar.gz akr-${VERSION}.catalina.bottle.tar.gz
       
           ls *.bottle.tar.gz
       
