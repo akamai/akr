@@ -2,6 +2,7 @@
 
 use crate::error::Error;
 use askama::Template;
+#[cfg(target_os = "linux")]
 use nix::unistd::Uid;
 
 #[derive(Debug, Clone)]
@@ -17,8 +18,8 @@ impl Daemon {
 
     pub fn new() -> Result<Self, Error> {
         Ok(Daemon {
-            bin_name: Self::BIN_NAME.to_string(),
             name: Self::NAME.to_string(),
+            bin_name: Self::BIN_NAME.to_string(),
             bin_path: std::env::current_exe()?.to_string_lossy().to_string(),
         })
     }

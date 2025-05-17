@@ -121,7 +121,6 @@ async fn pair() -> Result<(), Error> {
     };
 
     let queue_uuid = keypair.queue_uuid()?;
-    client.create_queue(queue_uuid).await?;
 
     // print the qr code for pairing
     let raw = format!(
@@ -145,7 +144,6 @@ async fn pair() -> Result<(), Error> {
         keypair,
         device_public_key: device_public_key.0.to_vec().into(),
         device_token: None,
-        aws_push_id: None,
         device_name: String::new(),
     };
 
@@ -165,7 +163,6 @@ async fn pair() -> Result<(), Error> {
     };
 
     pairing.device_name = id_response.data.device_name.clone();
-    pairing.aws_push_id = response.aws_push_id;
     pairing.device_token = response.device_token;
     pairing.store_to_disk()?;
 
@@ -329,22 +326,7 @@ async fn health_check() -> Result<(), Error> {
     let mut errors_encountered = false;
 
     // check if queues are working properly or not
-    match client.pz_health_check().await? {
-        error::QueueEvaluation::Allow => {}
-        error::QueueEvaluation::Deny(reason) => {
-            eprintln!("{}", Red.paint(reason.to_string()));
-            errors_encountered = true;
-        }
-    }
-    match client.aws_health_check().await? {
-        error::QueueEvaluation::Allow => {}
-        error::QueueEvaluation::Deny(reason) => {
-            eprintln!("{}", Red.paint(reason.to_string()));
-            errors_encountered = true;
-        }
-    }
-
-    match client.azure_health_check().await? {
+    match client.health_check().await? {
         error::QueueEvaluation::Allow => {}
         error::QueueEvaluation::Deny(reason) => {
             eprintln!("{}", Red.paint(reason.to_string()));

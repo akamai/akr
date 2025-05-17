@@ -457,7 +457,7 @@ impl SSHAgentHandler for Agent {
 fn show_notification(rp_id: &str) {
     #[cfg(target_os = "macos")]
     //open issue https://github.com/h4llow3En/mac-notification-sys/issues/8
-    // let _ = mac_notification_sys::set_application(&"com.akamai.pushzero");
+    // let _ = mac_notification_sys::set_application(&"com.akamai.mfa");
     let _ = notify_rust::Notification::new()
         .summary(format!("Login Request: {}", rp_id).as_str())
         .show();
