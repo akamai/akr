@@ -1,32 +1,43 @@
-# This is a basic workflow to help you get started with Actions
-
-name: Brew-Bottle-macOS
+name: Brew Bottle
 
 on: 
-  workflow_dispatch:
-    inputs:
-      versionString:
-        description: 'The version semver string like 0.1.14'     
-        required: true  
-        
+  release:
+    types:
+      - created
+
 jobs:
-  build:
+  bottle:
     runs-on: macos-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Get Rust toolchain channel
         run: |
           echo "RUST_CHANNEL=$(sed -nrE 's/^channel = "(.*)"$/\1/p' "$GITHUB_WORKSPACE"/rust-toolchain.toml)" >> $GITHUB_ENV
 
       - name: Install Rust ${{ env.RUST_CHANNEL }}
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1 # v1
         with:
           toolchain: ${{ env.RUST_CHANNEL }}
 
-      - name: bottle
-        run: ./brew_bottle.sh ${{ github.event.inputs.versionString }}
+      - name: Upload bottle assets to release
+        if: ${{ github.event.release.upload_url }}
         env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          cargo build --release
+
+          mkdir -p /tmp/akr/$VERSION/bin
+          cp ./target/release/akr /tmp/akr/$VERSION/bin/
+          tar -czf akr-$VERSION.big_sur.bottle.tar.gz -C /tmp akr
+          cp akr-$VERSION.big_sur.bottle.tar.gz akr-$VERSION.catalina.bottle.tar.gz
+      
+          ls *.bottle.tar.gz
+      
+          # clean up
+          rm -rf /tmp/akr
+
+          gh release upload $env:VERSION *.bottle.tar.gz
