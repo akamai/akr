@@ -26,29 +26,23 @@ jobs:
           sudo apt-get install pkg-config libssl-dev lintian  libpqxx-dev libxmlsec1-dev libclang-dev
 
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Get Rust toolchain channel
         run: |
           echo "RUST_CHANNEL=$(sed -nrE 's/^channel = "(.*)"$/\1/p' "$GITHUB_WORKSPACE"/rust-toolchain.toml)" >> $GITHUB_ENV
 
       - name: Install Rust ${{ env.RUST_CHANNEL }}
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1 # v1
         with:
           toolchain: ${{ env.RUST_CHANNEL }}
           targets: ${{ matrix.target }}
 
       - name: Install Cargo Deb
-        uses: actions-rs/cargo@v1.0.3
-        with:
-          command: install
-          args: cargo-deb --vers=${{ env.CARGO_DEB_VER }} --locked
+        run: cargo install cargo-deb --vers=${{ env.CARGO_DEB_VER }} --locked
 
       - name: Create package
-        uses: actions-rs/cargo@v1.0.3
-        with:
-          command: deb
-          args: -p akr --target=${{ matrix.target }}
+        run: cargo deb -p akr --target=${{ matrix.target }}
 
       - name: Verify package
         run: |
@@ -56,7 +50,7 @@ jobs:
           lintian -v target/${{ matrix.target }}/debian/*.deb || true
       
       - name: Upload asset
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with: 
           name: akr-deb
           path: target/${{ matrix.target }}/debian/*.deb
@@ -81,14 +75,14 @@ jobs:
           ln -s /usr/bin/cmake3 /usr/bin/cmake
 
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Get Rust toolchain channel
         run: |
           echo "RUST_CHANNEL=$(sed -nrE 's/^channel = "(.*)"$/\1/p' "$GITHUB_WORKSPACE"/rust-toolchain.toml)" >> $GITHUB_ENV
 
       - name: Install Rust ${{ env.RUST_CHANNEL }}
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1 # v1
         with:
           toolchain: ${{ env.RUST_CHANNEL }}
 
@@ -96,16 +90,10 @@ jobs:
         run: rm -f target/generate-rpm/*.rpm
 
       - name: Install Cargo Generate RPM
-        uses: actions-rs/cargo@v1.0.3
-        with:
-          command: install
-          args: cargo-generate-rpm --vers=${{ env.CARGO_GENERATE_RPM_VER }} --locked
+        run: cargo install cargo-generate-rpm --vers=${{ env.CARGO_GENERATE_RPM_VER }} --locked
 
       - name: Build binary
-        uses: actions-rs/cargo@v1.0.3
-        with:
-          command: build
-          args: --release
+        run: cargo build --release
 
       - name: Remove all symbol and relocation information
         run: strip -s target/release/akr
@@ -114,10 +102,7 @@ jobs:
         run: dist=$(rpm --eval %{?dist}); sed -i -e 's/release = "\(.*\)"/release = "\1'$dist'"/g' Cargo.toml
 
       - name: Create package
-        uses: actions-rs/cargo@v1.0.3
-        with:
-          command: generate-rpm
-          args: -p crates/kr ${{ env.CENTOS_BUILD_FLAGS }}
+        run: cargo generate-rpm -p crates/kr ${{ env.CENTOS_BUILD_FLAGS }}
 
       - name: Verify package
         run: |
@@ -125,7 +110,7 @@ jobs:
           rpmlint target/generate-rpm/akr-*.rpm || true
 
       - name: Upload RPM
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: akr-${{ matrix.image == 'alvistack/centos-9-stream' && 'centos-9-stream' || 'unknown' }}
           path: target/generate-rpm/*.rpm
