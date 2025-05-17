@@ -1,4 +1,4 @@
-name: Brew-Bottle-macOS
+name: Brew Bottle
 
 on: 
   release:
