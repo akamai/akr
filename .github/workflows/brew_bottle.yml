@@ -40,4 +40,4 @@ jobs:
           # clean up
           rm -rf /tmp/akr
 
-          gh release upload $env:VERSION *.bottle.tar.gz
+          gh release upload $VERSION *.bottle.tar.gz
