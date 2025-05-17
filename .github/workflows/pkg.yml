@@ -12,7 +12,9 @@ jobs:
       CARGO_DEB_VER: 1.38.2
       DEBIAN_FRONTEND: noninteractive
       PKG_CONFIG_ALLOW_CROSS: 1
-      TARGET: "x86_64-unknown-linux-gnu"
+    strategy:
+      matrix:
+        target: [ 'x86_64-unknown-linux-gnu' ]
     runs-on: ubuntu-22.04
     steps:
       - name: Install common libs
@@ -31,36 +33,39 @@ jobs:
         uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1 # v1
         with:
           toolchain: ${{ env.RUST_CHANNEL }}
-          targets: ${{ env.TARGET }}
+          targets: ${{ matrix.target }}
 
       - name: Install Cargo Deb
         run: cargo install cargo-deb --vers=${{ env.CARGO_DEB_VER }} --locked
 
       - name: Create package
-        run: cargo deb -p akr --target=${{ env.TARGET }} -o akr_amd64.deb
+        run: cargo deb -p akr --target=${{ matrix.target }} -o akr.deb
 
       - name: Verify package
         run: |
           # do not use exit codes while errors occured
-          lintian -v target/${{ env.TARGET }}/debian/*.deb || true
+          lintian -v target/${{ matrix.target }}/debian/*.deb || true
 
       - name: Upload deb asset to release
         if: ${{ github.event.release.upload_url }}
         env:
           GH_TOKEN: ${{ github.token }}
+          TARGET: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && 'amd64' || 'unknown' }}
           VERSION: ${{ github.event.release.tag_name }}
         run: |
-          cp target/${{ env.TARGET }}/debian/akr_amd64.deb akr_$VERSION_amd64.deb
-          gh release upload $VERSION akr_$VERSION_amd64.deb
+          cp target/${{ matrix.target }}/debian/akr.deb akr_$VERSION_$TARGET.deb
+          gh release upload $VERSION akr_$VERSION_$TARGET.deb
 
   rpm:
     name: RPM package
     env:
       CARGO_GENERATE_RPM_VER: 0.7.0
-      IMAGE: "alvistack/centos-9-stream"
+    strategy:
+      matrix:
+        image: [ 'alvistack/centos-9-stream' ]
     runs-on: ubuntu-22.04
     container:
-      image: ${{ env.IMAGE }}
+      image: ${{ matrix.image }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -90,7 +95,7 @@ jobs:
         run: dist=$(rpm --eval %{?dist}); sed -i -e 's/release = "\(.*\)"/release = "\1'$dist'"/g' Cargo.toml
 
       - name: Create package
-        run: cargo generate-rpm -p crates/kr ${{ env.CENTOS_BUILD_FLAGS }}
+        run: cargo generate-rpm -p crates/kr
 
       - name: Verify package
         run: |
@@ -101,7 +106,7 @@ jobs:
         if: ${{ github.event.release.upload_url }}
         env:
           GH_TOKEN: ${{ github.token }}
-          IMAGE: 'centos-9-stream'
+          IMAGE: ${{ matrix.image == 'alvistack/centos-9-stream' && 'centos-9-stream' || 'unknown' }}
           VERSION: ${{ github.event.release.tag_name }}
         run: |
           cp target/generate-rpm/akr-$VERSION-1.x86_64.rpm akr_$VERSION-$IMAGE.rpm
