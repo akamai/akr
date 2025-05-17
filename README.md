@@ -2,9 +2,9 @@
   <img width="150px" src="https://pushzero-assets.akamai.com/static/pushzero_logo.png" align="center"/>
 </p>
 
-# Akamai "Krypton" FIDO2 SSH Agent and CLI
+# Akamai MFA FIDO2 SSH Agent and CLI
 
-The `akr` command line utility is Akamai's "Krypton" SSH Agent, the successor to [`kr`](https://github.com/kryptco/kr) which works exclusively with the [Akamai MFA Authenticator](https://mfa.akamai.com/app) for iOS and Android.
+The `akr` command line utility is Akamai MFA's SSH Agent, the successor to [`kr`](https://github.com/kryptco/kr) which works exclusively with the [Akamai MFA Authenticator](https://mfa.akamai.com/app) for iOS and Android.
 Akr enables your smart phone to become a "push-based" FIDO2 authenticator for SSH authentication.
 
 `akr` enables SSH to authenticate with a FIDO2 key stored in the **Akamai MFA Authenticator app**
