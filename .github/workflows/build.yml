@@ -102,11 +102,11 @@ jobs:
         run: dist=$(rpm --eval %{?dist}); sed -i -e 's/release = "\(.*\)"/release = "\1'$dist'"/g' Cargo.toml
 
       - name: Create package
-        run: cargo generate-rpm -p crates/kr ${{ env.CENTOS_BUILD_FLAGS }}
+        run: cargo generate-rpm -p crates/kr
 
       - name: Verify package
         run: |
-          # do not use exit codes while errors occured
+          # do not use exit codes while errors occurred
           rpmlint target/generate-rpm/akr-*.rpm || true
 
       - name: Upload RPM
