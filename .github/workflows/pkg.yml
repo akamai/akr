@@ -53,9 +53,9 @@ jobs:
           TARGET: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && 'amd64' || 'unknown' }}
           VERSION: ${{ github.event.release.tag_name }}
         run: |
-          mv akr.deb akr_$VERSION_$TARGET.deb
+          mv akr.deb akr_${VERSION}_${TARGET}.deb
           ls *.deb
-          gh release upload $VERSION akr_$VERSION_$TARGET.deb
+          gh release upload $VERSION akr_${VERSION}_${TARGET}.deb
 
   rpm:
     name: RPM package
@@ -68,10 +68,6 @@ jobs:
     container:
       image: ${{ matrix.image }}
     steps:
-      - name: Install common libs
-        run: |
-          sudo dnf install rpmlint
-
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -105,7 +101,7 @@ jobs:
       - name: Verify package
         run: |
           # do not use exit codes when errors occurred
-          rpmlint akr.rpm || true
+          sudo rpm -qip akr.rpm || true
 
       - name: Upload rpm asset to release
         if: ${{ github.event.release.upload_url }}
@@ -114,6 +110,6 @@ jobs:
           IMAGE: ${{ matrix.image == 'alvistack/centos-9-stream' && 'centos-9-stream' || 'unknown' }}
           VERSION: ${{ github.event.release.tag_name }}
         run: |
-          mv akr.rpm akr_$VERSION-$IMAGE.rpm
+          mv akr.rpm akr_${VERSION}-${IMAGE}.rpm
           ls *.rpm
-          gh release upload $VERSION akr_$VERSION-$IMAGE.rpm
+          gh release upload $VERSION akr_${VERSION}-${IMAGE}.rpm
