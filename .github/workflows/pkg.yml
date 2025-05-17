@@ -71,10 +71,10 @@ jobs:
         # DNF4 installation commands
         # https://github.com/cli/cli/blob/trunk/docs/install_linux.md#dnf4
         run: |
-          sudo dnf install git
-          sudo dnf install 'dnf-command(config-manager)'
+          sudo dnf -y install git
+          sudo dnf -y install 'dnf-command(config-manager)'
           sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
-          sudo dnf install gh --repo gh-cli
+          sudo dnf -y install gh --repo gh-cli
 
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
