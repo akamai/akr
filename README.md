@@ -138,7 +138,7 @@ This enables your native system SSH to communicate to the `akr` ssh-agent proces
 
 ## Notes
 
-1. You can also use your existing local **RSA**, **ECDSA**, **ED25519** keys with akr as well. When you run `akr setup`, any exisiting local keys directly inside ~/.ssh folder gets loaded into the ssh-agent.
+1. You can also use your existing local **RSA**, **ECDSA**, **ED25519** keys with akr as well. When you run `akr setup`, any existing local keys directly inside ~/.ssh folder gets loaded into the ssh-agent.
 2. If you have an ECDSA key, please make sure the private key is in PEM format.
 
 # Security Disclosure
