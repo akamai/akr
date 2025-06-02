@@ -40,10 +40,10 @@ control_brace_style = "AlwaysSameLine"
 trailing_semicolon = true
 trailing_comma = "Vertical"
 match_block_trailing_comma = false
-blank_lines_upper_bound = 2
 blank_lines_lower_bound = 0
-edition = "2021"
-version = "One"
+blank_lines_upper_bound = 2
+edition = "2024"
+style_edition = "2024"
 inline_attribute_width = 0
 merge_derives = true
 use_try_shorthand = true
@@ -51,16 +51,11 @@ use_field_init_shorthand = true
 force_explicit_abi = true
 condense_wildcard_suffixes = false
 color = "Auto"
-# https://github.com/rust-lang/rustfmt/pull/2048
-#required_version = "1.68.2"
 unstable_features = false
 disable_all_formatting = false
 skip_children = false
-hide_parse_errors = false
+show_parse_errors = true
 error_on_line_overflow = false
 error_on_unformatted = false
 emit_mode = "Files"
 make_backup = false
-#ignore = [
-#    "crates/example/src/"
-#]

@@ -7,6 +7,16 @@ members = [
     "crates/ssh-agent"
 ]
 
+[workspace.package]
+authors = [
+    "Henry Zimmerman <hzimmerm@akamai.com>",
+    "James Wald <jwald@akamai.com>",
+    "Subhrajyoti Das <suda@akamai.com>"
+]
+edition = "2024"
+license = "All Rights Reserved, Akamai Technologies"
+version = "1.1.2"
+
 [workspace.dependencies]
 clap = { version = "4.5.39", features = ["derive"] }
 tokio = { version = "1.45.1", features = ["full"] }
