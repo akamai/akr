@@ -18,7 +18,7 @@ mod ssh_format;
 mod transport;
 mod util;
 
-use clap::Clap;
+use clap::Parser;
 use protocol::UnpairRequest;
 use protocol::{RegisterRequest, RegisterResponse};
 use std::path::PathBuf;

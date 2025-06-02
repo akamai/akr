@@ -1,20 +1,20 @@
-use clap::Clap;
+use clap::Parser;
+use clap::builder::styling::{Styles, AnsiColor, Effects, Style};
 
-/// This doc string acts as a help message when the user runs '--help'
-/// as do all doc strings on fields
-#[derive(Clap)]
+/// Akamai MFA CLI and SSH Agent
+#[derive(Parser)]
 #[clap(
     version = "1.1.2",
     author = "Akamai MFA <mfa.akamai.com/help>",
     name = "akr - Akamai Krypton"
 )]
-#[clap(setting = clap::AppSettings::ColoredHelp)]
+#[clap(styles = CARGO_STYLING)]
 pub struct Opts {
     #[clap(subcommand)]
     pub command: Command,
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub enum Command {
     /// Pair with your phone/tablet
     Pair {
@@ -45,7 +45,7 @@ pub enum Command {
     Unpair,
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct SetupArgs {
     /// a custom path for the ssh config to update
     /// omit for default "~/.ssh/config"
@@ -56,3 +56,28 @@ pub struct SetupArgs {
     #[clap(long)]
     pub print_only: bool,
 }
+
+
+// Clap v4 removed help styling.
+// In migrating from v3 to v4, this manual styling, based on how cargo styles 
+// its help output was added to restore the prior aesthetic of our help page.
+
+const HEADER: Style = AnsiColor::Green.on_default().effects(Effects::BOLD);
+const USAGE: Style = AnsiColor::Green.on_default().effects(Effects::BOLD);
+const LITERAL: Style = AnsiColor::Cyan.on_default().effects(Effects::BOLD);
+const PLACEHOLDER: Style = AnsiColor::Cyan.on_default();
+const ERROR: Style = AnsiColor::Red.on_default().effects(Effects::BOLD);
+const VALID: Style = AnsiColor::Cyan.on_default().effects(Effects::BOLD);
+const INVALID: Style = AnsiColor::Yellow.on_default().effects(Effects::BOLD);
+
+
+/// Cargo's color style
+/// [source](https://github.com/crate-ci/clap-cargo/blob/master/src/style.rs)
+const CARGO_STYLING: Styles = Styles::styled()
+    .header(HEADER)
+    .usage(USAGE)
+    .literal(LITERAL)
+    .placeholder(PLACEHOLDER)
+    .error(ERROR)
+    .valid(VALID)
+    .invalid(INVALID);
