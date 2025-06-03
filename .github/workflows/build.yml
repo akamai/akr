@@ -10,7 +10,7 @@ jobs:
   deb:
     name: Deb package
     env:
-      CARGO_DEB_VER: 1.38.2
+      CARGO_DEB_VER: 2.12.0
       DEBIAN_FRONTEND: noninteractive
       PKG_CONFIG_ALLOW_CROSS: 1
     strategy:
@@ -58,7 +58,7 @@ jobs:
   rpm:
     name: RPM package
     env:
-      CARGO_GENERATE_RPM_VER: 0.7.0
+      CARGO_GENERATE_RPM_VER: 0.16.1
     strategy:
       matrix:
         image:

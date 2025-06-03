@@ -124,7 +124,7 @@ impl Agent {
             .filter(|(pk, _)| pk.as_slice() == pubkey.as_slice())
             .next()
             .map(|id| id.1);
-        let rp_id = if let Some(ref id) = &id {
+        let rp_id = if let Some(id) = &id {
             id.application.clone()
         } else {
             // parse the rp_id from the public key
