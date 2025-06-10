@@ -1,5 +1,5 @@
 <p align="center" >
-  <img width="150px" src="https://pushzero-assets.akamai.com/static/pushzero_logo.png" align="center"/>
+  <img width="150px" src=https://github.com/user-attachments/assets/33cadaad-b5f9-4202-950c-752f0af27a20 align="center"/>
 </p>
 
 # Akamai MFA FIDO2 SSH Agent and CLI
