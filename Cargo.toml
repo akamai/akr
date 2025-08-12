@@ -27,7 +27,7 @@ serde-xml-rs = "0.8.1"
 async-trait = "0.1.88"
 base64 = "0.22.1"
 base64-serde = "0.8.0"
-thiserror = "2.0.12"
+thiserror = "2.0.14"
 futures = "0.3.28"
 chrono = "0.4.41"
 uuid = { version = "1.17.0", features = ["serde", "v4"] }
