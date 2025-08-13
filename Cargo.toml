@@ -37,7 +37,7 @@ byteorder = "1.5.0"
 whoami = "1.6.0"
 qr2term = "0.3.3"
 eagre-asn1 = "0.3.0"
-reqwest = { version = "0.12.19", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12.23", default-features = false, features = ["json", "rustls-tls"] }
 askama = "0.14.0"
 notify-rust = "4.11.7"
 run_script = "0.11.0"
