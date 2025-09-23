@@ -49,7 +49,7 @@ nix = { version = "0.30.1", features = ["user"] }
 openssl = "0.10.73"
 bitflags = "2.9.1"
 ecdsa = "0.16.9"
-ring = "0.17.14"
+aws-lc-rs = "1.14.0"
 untrusted = "0.9.0"
 pem = "3.0.5"
 osshkeys = "0.7.0"
