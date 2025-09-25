@@ -102,7 +102,6 @@ struct SystemdService {
     description: String,
     bin_path: String,
     bin_name: String,
-    current_user: String,
 }
 
 #[cfg(target_os = "linux")]
@@ -112,7 +111,6 @@ impl From<Daemon> for SystemdService {
             bin_name: d.bin_name,
             bin_path: d.bin_path,
             description: env!("CARGO_PKG_DESCRIPTION").to_string(),
-            current_user: whoami::username(),
         }
     }
 }
