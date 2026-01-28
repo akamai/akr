@@ -1,19 +1,26 @@
 version: 2
 updates:
   - package-ecosystem: "github-actions"
-    directory: "/" # `.github/workflows`
+    directories:
+      - "/" # `.github/workflows`
+      - "/.github/actions/*"
     rebase-strategy: "disabled"
     schedule:
       interval: "daily"
-      time: "20:00"
-      timezone: "America/New_York"
-    open-pull-requests-limit: 10
+    groups:
+      actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: "cargo"
     directory: "/"
     rebase-strategy: "disabled"
     schedule:
       interval: "daily"
-      time: "20:00"
-      timezone: "America/New_York"
     open-pull-requests-limit: 10
+
+  - package-ecosystem: "rust-toolchain"
+    directory: "/"
+    rebase-strategy: "disabled"
+    schedule:
+      interval: "daily"
