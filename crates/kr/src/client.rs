@@ -19,7 +19,7 @@ impl Client {
     }
 
     pub fn pairing() -> Result<Pairing, Error> {
-        Ok(Pairing::load_from_disk()?)
+        Pairing::load_from_disk()
     }
 }
 
@@ -31,9 +31,7 @@ impl Client {
         message: WireMessage,
     ) -> Result<(), Error> {
         let result = self.queue_client.send(device_token, queue_uuid, message.clone()).await;
-        if result.is_err() {
-            return result;
-        }
+        result?;
         Ok(())
     }
 

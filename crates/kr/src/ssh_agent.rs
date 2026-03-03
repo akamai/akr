@@ -121,8 +121,7 @@ impl Agent {
         let id = self
             .identities
             .iter()
-            .filter(|(pk, _)| pk.as_slice() == pubkey.as_slice())
-            .next()
+            .find(|(pk, _)| pk.as_slice() == pubkey.as_slice())
             .map(|id| id.1);
         let rp_id = if let Some(id) = &id {
             id.application.clone()
@@ -183,7 +182,7 @@ impl Agent {
         */
         let mut data: Vec<u8> = vec![];
 
-        const SIG_TYPE_ID: &'static str = "sk-ecdsa-sha2-nistp256@openssh.com";
+        const SIG_TYPE_ID: &str = "sk-ecdsa-sha2-nistp256@openssh.com";
         data.write_u32::<BigEndian>(SIG_TYPE_ID.len() as u32)?;
         data.write_all(SIG_TYPE_ID.as_bytes())?;
 
@@ -303,7 +302,7 @@ impl Agent {
         match key {
             Some(key) => match &key.keypair {
                 Some(keypair) => {
-                    let signature = keypair.sign(&data.as_slice()).unwrap();
+                    let signature = keypair.sign(data.as_slice()).unwrap();
 
                     Ok(Response::SignResponse2 {
                         algo_name: pubkey_type,
@@ -315,7 +314,7 @@ impl Agent {
 
                     match keypair {
                         Some(kp) => {
-                            let signature = kp.sign(&data.as_slice()).unwrap();
+                            let signature = kp.sign(data.as_slice()).unwrap();
 
                             Ok(Response::SignResponse2 {
                                 algo_name: pubkey_type,
@@ -323,7 +322,7 @@ impl Agent {
                             })
                         }
                         None => {
-                            return Ok(Response::Failure);
+                             Ok(Response::Failure)
                         }
                     }
                 }
@@ -439,7 +438,7 @@ impl SSHAgentHandler for Agent {
         let mut cursor = Cursor::new(pubkey.clone());
         let pubkey_type = read_string(&mut cursor)?;
 
-        if pubkey_type == "sk-ecdsa-sha2-nistp256@openssh.com".to_string() {
+        if pubkey_type == "sk-ecdsa-sha2-nistp256@openssh.com" {
             self.sign_fido2(pubkey, data, flags).await
         } else if pubkey_type.contains("ssh-rsa") {
             self.sign_rsa(pubkey, data, flags, pubkey_type).await

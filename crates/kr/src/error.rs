@@ -8,7 +8,7 @@ pub enum Error {
     Json(#[from] serde_json::Error),
 
     #[error("File IO error: '{0}'")]
-    IOError(#[from] std::io::Error),
+    IO(#[from] std::io::Error),
 
     #[error("Invalid pairing key")]
     InvalidPairingKeys,
@@ -68,28 +68,28 @@ pub enum Error {
     BadRpPrefix,
 
     #[error("Device error: {0}")]
-    DeviceError(String),
+    Device(String),
 
     #[error("Request error: {0}")]
-    HttpRequestError(#[from] reqwest::Error),
+    HttpRequest(#[from] reqwest::Error),
 
     #[error("Template error: {0}")]
     TemplateFailed(#[from] askama::Error),
 
     #[error("Couldn't Parse SSH version: '{0}'")]
-    RunScriptError(#[from] ScriptError),
+    RunScript(#[from] ScriptError),
 
     #[error("Sign flags contain incompatible bits")]
     IllegalFlags,
 
     #[error("Openssl operation failed: {0}")]
-    SslError(#[from] ErrorStack),
+    Ssl(#[from] ErrorStack),
 
     #[error("Invalid Bytes")]
     FromUtf8Error(#[from] std::string::FromUtf8Error),
 
     #[error("Unable to parse key")]
-    OsshKeysError(#[from] osshkeys::error::Error),
+    OsshKeys(#[from] osshkeys::error::Error),
 }
 
 impl From<Infallible> for Error {
@@ -122,7 +122,7 @@ impl std::fmt::Display for QueueDenyError {
         let explanation = match self.explanation {
             QueueDown => "Akamai MFA not reachable. Please make sure you can reach mfa.akamai.com",
         };
-        f.write_str(&format!("{}", explanation))
+        f.write_str(explanation)
     }
 }
 

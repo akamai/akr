@@ -7,18 +7,15 @@ use nix::unistd::Uid;
 
 #[derive(Debug, Clone)]
 pub struct Daemon {
-    pub name: String,
     pub bin_name: String,
     pub bin_path: String,
 }
 
 impl Daemon {
     const BIN_NAME: &'static str = env!("CARGO_BIN_NAME");
-    const NAME: &'static str = env!("CARGO_PKG_NAME");
 
     pub fn new() -> Result<Self, Error> {
         Ok(Daemon {
-            name: Self::NAME.to_string(),
             bin_name: Self::BIN_NAME.to_string(),
             bin_path: std::env::current_exe()?.to_string_lossy().to_string(),
         })
@@ -39,7 +36,7 @@ impl Daemon {
 
     #[cfg(target_os = "macos")]
     fn os_specific(self) -> LaunchAgent {
-        return LaunchAgent::from(self);
+         LaunchAgent::from(self)
     }
 }
 
@@ -48,7 +45,6 @@ impl Daemon {
 #[template(path = "macos/launch_agent.plist", escape = "none")]
 struct LaunchAgent {
     label: String,
-    bin_name: String,
     bin_path: String,
 }
 
@@ -57,7 +53,6 @@ impl From<Daemon> for LaunchAgent {
     fn from(d: Daemon) -> Self {
         Self {
             label: format!("com.akamai.{}", d.bin_name),
-            bin_name: d.bin_name,
             bin_path: d.bin_path,
         }
     }

@@ -10,7 +10,7 @@ pub struct PasswordPrompt {
 
 impl PasswordPrompt {
     pub fn new(key_name: String) -> Self {
-        PasswordPrompt { key_name: key_name }
+        PasswordPrompt { key_name }
     }
 
     /// Invokes the password prompt and puts the entered password into `password_buffer`.
@@ -28,6 +28,7 @@ impl PasswordPrompt {
             .stdout(Stdio::piped())
             .spawn()
             .expect("pinentry command failed to start");
+        pinentry.wait().expect("pinentry command failed to start");
 
         // Configure pinentry
         let pincmd = pinentry.stdin.take();
@@ -73,6 +74,6 @@ impl PasswordPrompt {
         }
 
         pinentry.kill().expect("failed to kill pinentry");
-        return 0;
+        0
     }
 }

@@ -30,7 +30,7 @@ impl Agent {
         let arc_handler = Arc::new(Mutex::new(handler));
 
         // accept the connections and spawn a new task for each one
-        while let Some((stream, _)) = listener.accept().await.ok() {
+        while let Ok((stream, _)) = listener.accept().await {
             match Agent::handle_client(arc_handler.clone(), stream).await {
                 Ok(_) => {}
                 Err(e) => debug!("handler: {:?}", e),

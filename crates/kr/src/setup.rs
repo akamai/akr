@@ -22,11 +22,11 @@ pub fn print_config() -> Result<(), Error> {
     Ok(())
 }
 
-const BEGIN_CONFIG_STANZA: &'static str = "# Begin Akamai MFA SSH Config";
-const END_CONFIG_STANZA: &'static str = "# End Akamai MFA SSH Config";
+const BEGIN_CONFIG_STANZA: &str = "# Begin Akamai MFA SSH Config";
+const END_CONFIG_STANZA: &str = "# End Akamai MFA SSH Config";
 
-const BEGIN_KR_STANZA: &'static str = "# Added by Krypton";
-const KR_PROXY_COMMAND_STANZA: &'static str = "krssh %h %p";
+const BEGIN_KR_STANZA: &str = "# Added by Krypton";
+const KR_PROXY_COMMAND_STANZA: &str = "krssh %h %p";
 
 fn create_ssh_config_stanza() -> Result<String, Error> {
     let agent_socket_path = crate::create_home_path()?
@@ -36,15 +36,15 @@ fn create_ssh_config_stanza() -> Result<String, Error> {
 
     // create the new config
     let mut stanza = String::new();
-    stanza.push_str("\n");
+    stanza.push('\n');
     stanza.push_str(BEGIN_CONFIG_STANZA);
-    stanza.push_str("\n");
+    stanza.push('\n');
     stanza.push_str("Host *\n");
     stanza.push_str("\tIdentityAgent ");
     stanza.push_str(&agent_socket_path);
-    stanza.push_str("\n");
+    stanza.push('\n');
     stanza.push_str(END_CONFIG_STANZA);
-    stanza.push_str("\n");
+    stanza.push('\n');
 
     Ok(stanza)
 }
@@ -74,7 +74,7 @@ pub async fn update_ssh_config(custom_path: Option<String>) -> Result<(), Error>
         .position(|s| s.as_bytes() == END_CONFIG_STANZA.as_bytes());
 
         let clean_akr_config_lines = match (start, end) {
-        (Some(start), Some(end)) => vec![&lines[..start], &lines[(end + 1)..]]
+        (Some(start), Some(end)) => [&lines[..start], &lines[(end + 1)..]]
             .concat()
             .join("\n"),
         _ => lines.join("\n"),
@@ -90,7 +90,7 @@ pub async fn update_ssh_config(custom_path: Option<String>) -> Result<(), Error>
         .position(|s| s.contains(KR_PROXY_COMMAND_STANZA));
 
     let mut clean_config = match (kr_start, kr_end) {
-        (Some(kr_start), Some(kr_end)) => vec![&lines_updated[..kr_start], &lines_updated[(kr_end + 1)..]]
+        (Some(kr_start), Some(kr_end)) => [&lines_updated[..kr_start], &lines_updated[(kr_end + 1)..]]
             .concat()
             .join("\n"),
         _ => lines_updated.join("\n"),

@@ -24,7 +24,7 @@ impl Pairing {
     pub fn load_from_disk() -> Result<Self, Error> {
         let path = Self::path()?;
 
-        if !std::fs::metadata(&path).is_ok() {
+        if std::fs::metadata(&path).is_err() {
             return Err(Error::NotPaired);
         }
 
@@ -142,7 +142,7 @@ impl Keypair {
         let ctxt =
             sodiumoxide::crypto::box_::seal(&message, &nonce, &device_pk, &self.secret_key()?);
         Ok(WireMessage::SealedMessage(
-            vec![nonce.0.to_vec(), ctxt].concat(),
+            [nonce.0.to_vec(), ctxt].concat(),
         ))
     }
 
@@ -175,7 +175,7 @@ impl Keypair {
         };
 
         let device_public_key =
-            sodiumoxide::crypto::sealedbox::open(&sealed, &self.public_key()?, &self.secret_key()?)
+            sodiumoxide::crypto::sealedbox::open(sealed, &self.public_key()?, &self.secret_key()?)
                 .map_err(|_| Error::UnsealFailed)?;
         Ok(PublicKey::from_slice(&device_public_key))
     }

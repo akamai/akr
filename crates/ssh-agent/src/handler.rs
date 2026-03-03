@@ -21,8 +21,8 @@ pub trait SSHAgentHandler: Send + Sync {
 
     async fn handle_request(&mut self, request: Request) -> HandleResult<Response> {
         match request {
-            Request::RequestIdentities => self.identities().await,
-            Request::SignRequest {
+            Request::Identities => self.identities().await,
+            Request::Sign {
                 pubkey_blob,
                 data,
                 flags,

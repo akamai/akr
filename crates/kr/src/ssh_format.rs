@@ -25,8 +25,6 @@ use aws_lc_rs::{
     signature::{self, EcdsaKeyPair},
 };
 
-use pem;
-
 /// Represents the key pair of a sk-ecdsa-sha2-nistp256
 /// Note the private key is not actually here, because it's hardware backed
 /// https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.u2f
@@ -51,7 +49,7 @@ impl SshFido2KeyPairHandle {
         Ok(format!(
             "{} {} {}",
             Self::TYPE_ID,
-            Base64Buffer(wire).to_string(),
+            Base64Buffer(wire),
             &self.application
         ))
     }
@@ -103,8 +101,8 @@ impl SshFido2KeyPairHandle {
         let dummy_checksum = sodiumoxide::randombytes::randombytes(4);
         let priv_key = self.fmt_private_key()?;
         let len = (dummy_checksum.len() * 2) + priv_key.len() + 4 + comment.len();
-        let pad_bytes = if len % 8 == 0 { 0 } else { 8 - (len % 8) };
-        let pad = vec![0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07];
+        let pad_bytes = if len.is_multiple_of(8) { 0 } else { 8 - (len % 8) };
+        let pad = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07];
 
         data.write_u32::<BigEndian>((len + pad_bytes) as u32)?;
         data.write_all(&dummy_checksum)?;
@@ -134,10 +132,10 @@ impl SshFido2KeyPairHandle {
 
     /// Format an SSH Public key
     ///
-    ///    string		"sk-ecdsa-sha2-nistp256@openssh.com"
-    ///    string		curve name
-    ///    ec_point	    Q
-    ///    string		application (user-specified, but typically "ssh:")    
+    ///    string    "sk-ecdsa-sha2-nistp256@openssh.com"
+    ///    string    curve name
+    ///    ec_point    Q
+    ///    string    application (user-specified, but typically "ssh:")
     ///
     pub fn fmt_public_key(&self) -> Result<SshWirePublicKey, std::io::Error> {
         let mut data = vec![];
@@ -168,18 +166,17 @@ impl SshFido2KeyPairHandle {
     }
 
     /// Format an SSH Private key
-    ///    string		"sk-ecdsa-sha2-nistp256@openssh.com"
-    ///    string		curve name
-    ///    ec_point	Q
-    ///    string		application (user-specified, but typically "ssh:")
-    ///    uint8		flags
-    ///    string		key_handle
-    ///    string		reserved
+    ///    string    "sk-ecdsa-sha2-nistp256@openssh.com"
+    ///    string    curve name
+    ///    ec_point Q
+    ///    string    application (user-specified, but typically "ssh:")
+    ///    uint8    flags
+    ///    string    key_handle
+    ///    string    reserved
     /// Note: this does't actually coontain the private key
     /// because it's enclave backed...it just contains a "key_handle" (cred id)
     /// in place of the private key
     /// See: https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.u2f
-
     pub fn fmt_private_key(&self) -> Result<Vec<u8>, Error> {
         let mut data = vec![];
 
@@ -264,7 +261,7 @@ impl SshKey {
 
         let pub_blob = base64::engine::general_purpose::STANDARD
             .decode(data_encoded.trim())
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            .map_err(io::Error::other)?;
 
         Ok(SshKey {
             pub_blob,
@@ -349,8 +346,8 @@ impl SshKey {
             return Ok((pkey, self.ecdsa_key_pair()));
         }
 
-        let pkey = PKey::private_key_from_pem_callback(&self.priv_file.as_slice(), password_callback)
-            .map_err(|e| Error::SslError(e))?;
+        let pkey = PKey::private_key_from_pem_callback(self.priv_file.as_slice(), password_callback)
+            .map_err(Error::Ssl)?;
 
         let pkcs8_bytes = &pkey.private_key_to_pem_pkcs8()?;
         let pem_bytes = pem::parse(pkcs8_bytes.as_slice()).expect("Could not parse pem key");

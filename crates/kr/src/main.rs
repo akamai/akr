@@ -46,8 +46,8 @@ extern crate bitflags;
 
 mod prompt;
 
-pub const HOME_DIR: &'static str = ".akr";
-const SSH_AGENT_PIPE: &'static str = "akr-ssh-agent.sock";
+pub const HOME_DIR: &str = ".akr";
+const SSH_AGENT_PIPE: &str = "akr-ssh-agent.sock";
 
 #[tokio::main]
 async fn main() {
@@ -100,12 +100,9 @@ async fn pair() -> Result<(), Error> {
         }))
         .await;
 
-    match id_response_result {
-        Ok(id_response) => {
+    if let Ok(id_response) = id_response_result {
             already_paired = true;
             paired_device_name = id_response.data.device_name;
-        }
-        Err(_) => {}
     }
 
     let keypair: Keypair = sodiumoxide::crypto::box_::gen_keypair().into();
@@ -200,7 +197,7 @@ async fn unpair() -> Result<(), Error> {
     let request = Request::new(RequestBody::Unpair(UnpairRequest {}));
     let wire_message = pairing.seal(&request)?;
 
-    let _ = client
+    client
         .send(pairing.device_token.clone(), queue_uuid, wire_message)
         .await?;
 
@@ -302,11 +299,10 @@ async fn start_daemon() {
     let home = create_home_path().expect("failed to create home dir");
     let pipe = home.join(SSH_AGENT_PIPE);
 
-    if std::fs::metadata(&pipe).is_ok() {
-        if let Ok(_) = std::fs::remove_file(&pipe) {
+    if std::fs::metadata(&pipe).is_ok() && let Ok(_) = std::fs::remove_file(&pipe) {
             println!("Pipe deleted");
-        }
     }
+
     println!("binding to {}", pipe.display());
     let listener = UnixListener::bind(pipe);
     let mut handler = ssh_agent::Agent::new(Client::new().expect("failed to startup client"));
@@ -384,7 +380,7 @@ fn create_home_path() -> Result<PathBuf, Error> {
 pub fn global_device_uuid() -> Result<Base64Buffer, Error> {
     let path = create_home_path()?.join("global_device.uuid");
 
-    if !std::fs::metadata(&path).is_ok() {
+    if std::fs::metadata(&path).is_err() {
         let uuid: Base64Buffer = sodiumoxide::randombytes::randombytes(32).into();
         std::fs::write(path, uuid.to_string())?;
         return Ok(uuid);
@@ -402,9 +398,9 @@ fn check_ssh_version() -> Result<(), Error> {
         &vec![],
         &ScriptOptions::new(),
     )
-    .map_err(|error| Error::RunScriptError(error))?;
+    .map_err(Error::RunScript)?;
 
-    if ssh_error == "" && ssh_code == 0 {
+    if ssh_error.is_empty() && ssh_code == 0 {
         match ssh_output.trim().parse::<f64>() {
             Ok(version) => {
                 if version < 8.2 {
