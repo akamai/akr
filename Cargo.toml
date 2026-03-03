@@ -1,23 +1,30 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 default-members = ["crates/kr"]
 members = [
     "crates/kr",
-    "crates/ssh-agent"
+    "crates/ssh-agent",
+    "crates/tools/lint/workspace",
 ]
 
 [workspace.package]
 authors = [
-    "Henry Zimmerman <hzimmerm@akamai.com>",
-    "James Wald <jwald@akamai.com>",
-    "Subhrajyoti Das <suda@akamai.com>"
+    "Akamai MFA Engineering <dl-pushmfa@akamai.com>"
 ]
 edition = "2024"
 license = "All Rights Reserved, Akamai Technologies"
 version = "1.1.2"
 
+[workspace.lints.clippy]
+cast_lossless = { level = "warn" }
+cast_possible_truncation = { level = "warn" }
+cast_possible_wrap = { level = "warn" }
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tokio_unstable)'] }
+
 [workspace.dependencies]
 clap = { version = "4.5.48", features = ["derive"] }
+toml = "0.9.12"
 tokio = { version = "1.45.1", features = ["full"] }
 sodiumoxide = "0.2.7"
 serde = { version = "1.0.219", features = ["derive"] }
@@ -34,6 +41,7 @@ uuid = { version = "1.17.0", features = ["serde", "v4"] }
 env_logger = "0.11.8"
 log = "0.4.27"
 byteorder = "1.5.0"
+walkdir = "2.5.0"
 whoami = "1.6.0"
 qr2term = "0.3.3"
 eagre-asn1 = "0.3.0"
