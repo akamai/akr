@@ -124,7 +124,7 @@ impl Agent {
         //pop a notification
         let rp_id_clone = rp_id.clone();
         tokio::spawn(async move {
-            show_notification(&rp_id_clone);
+            show_desktop_notification(&rp_id_clone);
         });
 
         let challenge_hash = sodiumoxide::crypto::hash::sha256::hash(data.as_slice())
@@ -419,11 +419,9 @@ impl SSHAgentHandler for Agent {
 }
 
 /// show a desktop notification about the pending request
-fn show_notification(rp_id: &str) {
-    #[cfg(target_os = "macos")]
-    //open issue https://github.com/h4llow3En/mac-notification-sys/issues/8
-    // let _ = mac_notification_sys::set_application(&"com.akamai.mfa");
+fn show_desktop_notification(rp_id: &str) {
     let _ = notify_rust::Notification::new()
         .summary(format!("Login Request: {}", rp_id).as_str())
+        .body("Login request has been sent.")
         .show();
 }
