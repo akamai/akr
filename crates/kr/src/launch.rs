@@ -36,7 +36,7 @@ impl Daemon {
 
     #[cfg(target_os = "macos")]
     fn os_specific(self) -> LaunchAgent {
-         LaunchAgent::from(self)
+        LaunchAgent::from(self)
     }
 }
 
@@ -127,23 +127,20 @@ impl SystemdService {
         std::fs::write(path_to_write, contents)?;
 
         if Uid::effective().is_root() {
-
-            let _= std::process::Command::new("systemctl")
-            .arg("--now")
-            .arg("enable")
-            .arg(path.join(&service_name))
-            .output()?;
-        }
-
-        else {
             let _ = std::process::Command::new("systemctl")
-            .arg("--user")
-            .arg("--now")
-            .arg("enable")
-            .arg(service_name)
-            .output()?;
+                .arg("--now")
+                .arg("enable")
+                .arg(path.join(&service_name))
+                .output()?;
+        } else {
+            let _ = std::process::Command::new("systemctl")
+                .arg("--user")
+                .arg("--now")
+                .arg("enable")
+                .arg(service_name)
+                .output()?;
         }
-        
+
 
         Ok(())
     }

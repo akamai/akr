@@ -40,8 +40,8 @@ pub type KeyHandle = Vec<u8>;
 pub type SshWirePublicKey = Vec<u8>;
 
 impl SshFido2KeyPairHandle {
-    pub const TYPE_ID: &'static str = "sk-ecdsa-sha2-nistp256@openssh.com";
     const CURVE_NAME: &'static str = "nistp256";
+    pub const TYPE_ID: &'static str = "sk-ecdsa-sha2-nistp256@openssh.com";
 
     /// Public Key file format
     pub fn authorized_public_key(&self) -> Result<String, Error> {
@@ -358,13 +358,19 @@ impl SshKey {
         if pubkey_type.contains("ecdsa") {
             let key_pair = match pubkey_type.as_str() {
                 "ecdsa-sha2-nistp256" => {
-                    let key_pair = EcdsaKeyPair::from_pkcs8(&signature::ECDSA_P256_SHA256_ASN1_SIGNING, pkcs8_bytes.as_slice());
+                    let key_pair = EcdsaKeyPair::from_pkcs8(
+                        &signature::ECDSA_P256_SHA256_ASN1_SIGNING,
+                        pkcs8_bytes.as_slice(),
+                    );
                     Some(key_pair.expect("Could not parse pkcs8 key"))
-                },
+                }
                 "ecdsa-sha2-nistp384" => {
-                    let key_pair = EcdsaKeyPair::from_pkcs8(&signature::ECDSA_P384_SHA384_ASN1_SIGNING, pkcs8_bytes.as_slice());
+                    let key_pair = EcdsaKeyPair::from_pkcs8(
+                        &signature::ECDSA_P384_SHA384_ASN1_SIGNING,
+                        pkcs8_bytes.as_slice(),
+                    );
                     Some(key_pair.expect("Could not parse pkcs8 key"))
-                },
+                }
                 _ => None,
             };
 

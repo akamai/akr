@@ -170,12 +170,8 @@ impl Response {
     pub async fn write(&self, stream: &mut UnixStream) -> WritingError<()> {
         let mut buf = Vec::new();
         match *self {
-            Response::Success => {
-                WriteBytesExt::write_u8(&mut buf, MessageResponse::Success as u8)?
-            }
-            Response::Failure => {
-                WriteBytesExt::write_u8(&mut buf, MessageResponse::Failure as u8)?
-            }
+            Response::Success => WriteBytesExt::write_u8(&mut buf, MessageResponse::Success as u8)?,
+            Response::Failure => WriteBytesExt::write_u8(&mut buf, MessageResponse::Failure as u8)?,
             Response::Identities(ref identities) => {
                 WriteBytesExt::write_u8(&mut buf, MessageResponse::IdentitiesAnswer as u8)?;
                 WriteBytesExt::write_u32::<BigEndian>(&mut buf, identities.len() as u32)?;

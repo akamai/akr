@@ -1,7 +1,9 @@
-use crate::error::Error;
-use crate::protocol::{Base64Buffer, Request, Response, ResponseBody, WireMessage};
+use crate::{
+    error::Error,
+    protocol::{Base64Buffer, Request, Response, ResponseBody, WireMessage},
+};
 use serde::{Deserialize, Serialize};
-use sodiumoxide::crypto::box_::{PublicKey, SecretKey, NONCEBYTES};
+use sodiumoxide::crypto::box_::{NONCEBYTES, PublicKey, SecretKey};
 
 use std::path::PathBuf;
 use uuid::Uuid;
@@ -115,8 +117,8 @@ pub struct Keypair {
 impl From<(PublicKey, SecretKey)> for Keypair {
     fn from(kp: (PublicKey, SecretKey)) -> Self {
         Self {
-            public_key: kp.0 .0.to_vec().into(),
-            secret_key: kp.1 .0.to_vec().into(),
+            public_key: kp.0.0.to_vec().into(),
+            secret_key: kp.1.0.to_vec().into(),
         }
     }
 }
@@ -139,11 +141,8 @@ impl Keypair {
     fn seal(&self, device_pk: PublicKey, request: &Request) -> Result<WireMessage, Error> {
         let message = serde_json::to_vec(&request)?;
         let nonce = sodiumoxide::crypto::box_::gen_nonce();
-        let ctxt =
-            sodiumoxide::crypto::box_::seal(&message, &nonce, &device_pk, &self.secret_key()?);
-        Ok(WireMessage::SealedMessage(
-            [nonce.0.to_vec(), ctxt].concat(),
-        ))
+        let ctxt = sodiumoxide::crypto::box_::seal(&message, &nonce, &device_pk, &self.secret_key()?);
+        Ok(WireMessage::SealedMessage([nonce.0.to_vec(), ctxt].concat()))
     }
 
     fn open(&self, device_pk: PublicKey, wire_message: &WireMessage) -> Result<Response, Error> {
@@ -158,9 +157,8 @@ impl Keypair {
         let nonce = sodiumoxide::crypto::box_::Nonce::from_slice(&sealed[0..NONCEBYTES])
             .ok_or(Error::InvalidCiphertext)?;
         let ctxt = &sealed[NONCEBYTES..];
-        let plaintext =
-            sodiumoxide::crypto::box_::open(ctxt, &nonce, &device_pk, &self.secret_key()?)
-                .map_err(|_| Error::UnsealFailed)?;
+        let plaintext = sodiumoxide::crypto::box_::open(ctxt, &nonce, &device_pk, &self.secret_key()?)
+            .map_err(|_| Error::UnsealFailed)?;
         Ok(serde_json::from_slice(&plaintext)?)
     }
 

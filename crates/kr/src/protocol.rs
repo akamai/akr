@@ -126,7 +126,7 @@ pub struct ClientResult<T> {
     error: Option<String>,
 }
 
- impl<T> From<ClientResult<T>> for Result<T, Error> {
+impl<T> From<ClientResult<T>> for Result<T, Error> {
     fn from(val: ClientResult<T>) -> Self {
         match (val.contents, val.error) {
             (Some(contents), None) => Ok(contents),

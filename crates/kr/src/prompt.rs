@@ -1,8 +1,9 @@
 //! GUI password prompt using pinentry
-use std::cmp;
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::process::{Command, Stdio};
+use std::{
+    cmp,
+    io::{BufReader, prelude::*},
+    process::{Command, Stdio},
+};
 
 pub struct PasswordPrompt {
     key_name: String,
@@ -28,7 +29,7 @@ impl PasswordPrompt {
             .stdout(Stdio::piped())
             .spawn()
             .expect("pinentry command failed to start");
-        pinentry.wait().expect("pinentry command failed to start");
+        pinentry.wait().expect("failed to wait on pinentry");
 
         // Configure pinentry
         let pincmd = pinentry.stdin.take();

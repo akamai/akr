@@ -1,27 +1,23 @@
-use crate::client::Client;
-use crate::prompt::PasswordPrompt;
-use crate::protocol::{AuthenticateRequest, AuthenticateResponse, Base64Buffer, RequestBody};
-use crate::ssh_format::{SshKey, SshWirePublicKey};
 use crate::{
+    client::Client,
     error::*,
+    identity::StoredIdentity,
+    prompt::PasswordPrompt,
+    protocol::{AuthenticateRequest, AuthenticateResponse, Base64Buffer, RequestBody},
+    ssh_format::{SshFido2KeyPairHandle, SshKey, SshWirePublicKey},
     util::{read_data, read_string},
 };
-use crate::{identity::StoredIdentity, ssh_format::SshFido2KeyPairHandle};
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use eagre_asn1::der::DER;
-use eagre_asn1::der_sequence;
+use eagre_asn1::{der::DER, der_sequence};
 use osshkeys::PrivateParts;
-use ssh_agent::error::HandleResult;
-use ssh_agent::Identity;
-use ssh_agent::Response;
-use ssh_agent::SSHAgentHandler;
-use std::collections::HashMap;
-use std::ffi::OsStr;
-use std::fs;
-use std::path::Path;
+use ssh_agent::{Identity, Response, SSHAgentHandler, error::HandleResult};
 use std::{
+    collections::HashMap,
+    ffi::OsStr,
+    fs,
     io::{Cursor, Write},
+    path::Path,
     vec,
 };
 
@@ -94,11 +90,7 @@ impl Agent {
                         }
                     },
                     Err(e) => {
-                        eprintln!(
-                            "{} has no associated private key file ({})",
-                            path.display(),
-                            e
-                        );
+                        eprintln!("{} has no associated private key file ({})", path.display(), e);
                     }
                 }
             }
@@ -111,12 +103,7 @@ impl Agent {
         );
     }
 
-    async fn sign_fido2(
-        &mut self,
-        pubkey: Vec<u8>,
-        data: Vec<u8>,
-        _flags: u32,
-    ) -> HandleResult<Response> {
+    async fn sign_fido2(&mut self, pubkey: Vec<u8>, data: Vec<u8>, _flags: u32) -> HandleResult<Response> {
         // try to find the matching key handle
         let id = self
             .identities
@@ -202,18 +189,14 @@ impl Agent {
         flags: u32,
         pubkey_type: String,
     ) -> HandleResult<Response> {
-        let key = self
-            .ssh_keys
-            .iter_mut()
-            .find(|key| key.pub_key_blob() == pubkey);
+        let key = self.ssh_keys.iter_mut().find(|key| key.pub_key_blob() == pubkey);
         match key {
             Some(key) => {
                 let comment = key.comment().to_string();
                 let (signature, algo) = {
-                    let (priv_key, _ecdsa_key_pair) = match key.unlock_with(
-                        |buf| Ok(PasswordPrompt::new(comment).invoke(buf)),
-                        pubkey_type,
-                    ) {
+                    let (priv_key, _ecdsa_key_pair) = match key
+                        .unlock_with(|buf| Ok(PasswordPrompt::new(comment).invoke(buf)), pubkey_type)
+                    {
                         Ok(p) => p,
                         Err(_e) => {
                             return Ok(Response::Failure);
@@ -244,10 +227,7 @@ impl Agent {
         flags: u32,
         pubkey_type: String,
     ) -> HandleResult<Response> {
-        let key = self
-            .ssh_keys
-            .iter_mut()
-            .find(|key| key.pub_key_blob() == pubkey);
+        let key = self.ssh_keys.iter_mut().find(|key| key.pub_key_blob() == pubkey);
         match key {
             Some(key) => {
                 let comment = key.comment().to_string();
@@ -295,10 +275,7 @@ impl Agent {
         _flags: u32,
         pubkey_type: String,
     ) -> HandleResult<Response> {
-        let key = self
-            .ssh_keys
-            .iter_mut()
-            .find(|key| key.pub_key_blob() == pubkey);
+        let key = self.ssh_keys.iter_mut().find(|key| key.pub_key_blob() == pubkey);
         match key {
             Some(key) => match &key.keypair {
                 Some(keypair) => {
@@ -321,9 +298,7 @@ impl Agent {
                                 signature,
                             })
                         }
-                        None => {
-                             Ok(Response::Failure)
-                        }
+                        None => Ok(Response::Failure),
                     }
                 }
             },
@@ -382,11 +357,7 @@ impl SSHAgentHandler for Agent {
         Ok(ids)
     }
 
-    async fn add_identity(
-        &mut self,
-        key_type: String,
-        key_blob: Vec<u8>,
-    ) -> HandleResult<Response> {
+    async fn add_identity(&mut self, key_type: String, key_blob: Vec<u8>) -> HandleResult<Response> {
         if key_type.as_str() != SshFido2KeyPairHandle::TYPE_ID {
             eprintln!("add error: not a fido2 ssh keypair");
             return Ok(Response::Success);
@@ -417,12 +388,7 @@ impl SSHAgentHandler for Agent {
         Ok(Response::Success)
     }
 
-    async fn sign_request(
-        &mut self,
-        pubkey: Vec<u8>,
-        data: Vec<u8>,
-        flags: u32,
-    ) -> HandleResult<Response> {
+    async fn sign_request(&mut self, pubkey: Vec<u8>, data: Vec<u8>, flags: u32) -> HandleResult<Response> {
         /* data:
          Packet Format (SSH_MSG_USERAUTH_REQUEST):
          string    session identifier

@@ -1,7 +1,4 @@
-use crate::create_home_path;
-use crate::error::Error;
-use crate::protocol::Base64Buffer;
-use crate::ssh_format::SshFido2KeyPairHandle;
+use crate::{create_home_path, error::Error, protocol::Base64Buffer, ssh_format::SshFido2KeyPairHandle};
 use serde::{Deserialize, Serialize};
 use sodiumoxide::hex;
 use std::path::PathBuf;
@@ -44,9 +41,8 @@ impl StoredIdentity {
             std::fs::create_dir_all(&dir_path)?;
         }
 
-        let name = hex::encode(
-            sodiumoxide::crypto::hash::sha256::hash(handle.key_handle.as_slice()).as_ref(),
-        );
+        let name =
+            hex::encode(sodiumoxide::crypto::hash::sha256::hash(handle.key_handle.as_slice()).as_ref());
         let path = dir_path.join(&name);
         std::fs::write(path, serde_json::to_vec(handle)?)?;
         Ok(())

@@ -3,9 +3,7 @@ use tokio::sync::Mutex;
 
 use tokio::net::{UnixListener, UnixStream};
 
-use crate::error::HandleResult;
-use crate::handler::SSHAgentHandler;
-use crate::protocol::Request;
+use crate::{error::HandleResult, handler::SSHAgentHandler, protocol::Request};
 
 pub struct Agent;
 

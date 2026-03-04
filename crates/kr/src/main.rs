@@ -19,19 +19,16 @@ mod transport;
 mod util;
 
 use clap::Parser;
-use protocol::UnpairRequest;
-use protocol::{RegisterRequest, RegisterResponse};
+use protocol::{RegisterRequest, RegisterResponse, UnpairRequest};
 use std::path::PathBuf;
 
 use tokio::net::UnixListener;
 
-use crate::client::Client;
-use crate::error::Error;
-use crate::protocol::{
-    Base64Buffer, IdRequest, IdResponse, Request, RequestBody, ResponseBody, PROTOCOL_VERSION,
-};
 use crate::{
+    client::Client,
+    error::Error,
     pairing::{Keypair, Os, Pairing, PairingQr},
+    protocol::{Base64Buffer, IdRequest, IdResponse, PROTOCOL_VERSION, Request, RequestBody, ResponseBody},
     ssh_format::SshFido2KeyPairHandle,
 };
 
@@ -101,8 +98,8 @@ async fn pair() -> Result<(), Error> {
         .await;
 
     if let Ok(id_response) = id_response_result {
-            already_paired = true;
-            paired_device_name = id_response.data.device_name;
+        already_paired = true;
+        paired_device_name = id_response.data.device_name;
     }
 
     let keypair: Keypair = sodiumoxide::crypto::box_::gen_keypair().into();
@@ -126,7 +123,10 @@ async fn pair() -> Result<(), Error> {
     );
     qr2term::print_qr(raw).expect("failed to generate a qr code");
     if already_paired {
-        println!("You are already paired with device {}. \nTo override, scan the above QR code to pair a new device ", Yellow.paint(paired_device_name));
+        println!(
+            "You are already paired with device {}. \nTo override, scan the above QR code to pair a new device ",
+            Yellow.paint(paired_device_name)
+        );
     } else {
         println!("{}", Green.paint("Scan the above QR code to pair your device..."));
     }
@@ -299,8 +299,10 @@ async fn start_daemon() {
     let home = create_home_path().expect("failed to create home dir");
     let pipe = home.join(SSH_AGENT_PIPE);
 
-    if std::fs::metadata(&pipe).is_ok() && let Ok(_) = std::fs::remove_file(&pipe) {
-            println!("Pipe deleted");
+    if std::fs::metadata(&pipe).is_ok()
+        && let Ok(_) = std::fs::remove_file(&pipe)
+    {
+        println!("Pipe deleted");
     }
 
     println!("binding to {}", pipe.display());
