@@ -15,7 +15,7 @@ env:
 
 jobs:
   rustfmt:
-    runs-on: arc-regular
+    runs-on: ubuntu-latest
     concurrency:
       # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
       group: ${{ github.head_ref || github.run_id }}/rustfmt
@@ -62,7 +62,7 @@ jobs:
           FILES_TO_CHECK: ${{ steps.changes.outputs.rust-changed-files }}
 
   clippy:
-    runs-on: arc-regular
+    runs-on: ubuntu-latest
     concurrency:
       # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
       group: ${{ github.head_ref || github.run_id }}/clippy
@@ -98,7 +98,7 @@ jobs:
           cargo +${{ env.RUST_CHANNEL }} clippy --workspace --tests -- -Dwarnings 
 
   workspace:
-    runs-on: arc-regular
+    runs-on: ubuntu-latest
     concurrency:
       # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
       group: ${{ github.head_ref || github.run_id }}/workspace
