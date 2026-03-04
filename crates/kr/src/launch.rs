@@ -31,7 +31,7 @@ impl Daemon {
 
     #[cfg(target_os = "linux")]
     fn os_specific(self) -> SystemdService {
-        SystemdService::from(self);
+        SystemdService::from(self)
     }
 
     #[cfg(target_os = "macos")]
