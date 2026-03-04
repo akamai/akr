@@ -31,7 +31,7 @@ impl Daemon {
 
     #[cfg(target_os = "linux")]
     fn os_specific(self) -> SystemdService {
-        return SystemdService::from(self);
+        SystemdService::from(self);
     }
 
     #[cfg(target_os = "macos")]
@@ -94,7 +94,6 @@ impl LaunchAgent {
 #[derive(Debug, Clone, Template)]
 #[template(path = "linux/systemd.service", escape = "none")]
 struct SystemdService {
-    description: String,
     bin_path: String,
     bin_name: String,
     current_user: String,
@@ -106,7 +105,6 @@ impl From<Daemon> for SystemdService {
         Self {
             bin_name: d.bin_name,
             bin_path: d.bin_path,
-            description: env!("CARGO_PKG_DESCRIPTION").to_string(),
             current_user: whoami::username(),
         }
     }
