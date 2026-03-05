@@ -29,7 +29,6 @@ impl PasswordPrompt {
             .stdout(Stdio::piped())
             .spawn()
             .expect("pinentry command failed to start");
-        pinentry.wait().expect("failed to wait on pinentry");
 
         // Configure pinentry
         let pincmd = pinentry.stdin.take();
@@ -56,6 +55,7 @@ impl PasswordPrompt {
                             let line = line.expect("failed to read line from pinentry");
                             if line.starts_with("ERR ") {
                                 pinentry.kill().expect("failed to kill pinentry");
+                                pinentry.wait().expect("failed to wait on pinentry");
                                 return 0; // Abort!
                             } else if line.starts_with("D ") {
                                 let bytes = &line.as_bytes()[2..];
@@ -64,6 +64,7 @@ impl PasswordPrompt {
                                 }
 
                                 pinentry.kill().expect("failed to kill pinentry");
+                                pinentry.wait().expect("failed to wait on pinentry");
                                 return cmp::min(bytes.len(), password_buffer.len());
                             }
                         }
@@ -75,6 +76,7 @@ impl PasswordPrompt {
         }
 
         pinentry.kill().expect("failed to kill pinentry");
+        pinentry.wait().expect("failed to wait on pinentry");
         0
     }
 }
