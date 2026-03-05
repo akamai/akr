@@ -9,7 +9,7 @@ members = [
 
 [workspace.package]
 authors = [
-    "Akamai MFA Engineering <dl-pushmfa@akamai.com>"
+    "Akamai Support <support@akamai.com>"
 ]
 edition = "2024"
 license = "All Rights Reserved, Akamai Technologies"
