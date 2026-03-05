@@ -1,5 +1,7 @@
-use clap::Parser;
-use clap::builder::styling::{Styles, AnsiColor, Effects, Style};
+use clap::{
+    Parser,
+    builder::styling::{AnsiColor, Effects, Style, Styles},
+};
 
 /// Akamai MFA CLI and SSH Agent
 #[derive(Parser)]
@@ -59,7 +61,7 @@ pub struct SetupArgs {
 
 
 // Clap v4 removed help styling.
-// In migrating from v3 to v4, this manual styling, based on how cargo styles 
+// In migrating from v3 to v4, this manual styling, based on how cargo styles
 // its help output was added to restore the prior aesthetic of our help page.
 
 const HEADER: Style = AnsiColor::Green.on_default().effects(Effects::BOLD);

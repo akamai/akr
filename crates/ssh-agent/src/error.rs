@@ -19,24 +19,18 @@ impl Error {
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
-        match err {
-            _ => Error::new(format!("IOError: {:?}", err)),
-        }
+        Error::new(format!("IO: {:?}", err))
     }
 }
 
 impl<'a> From<&'a str> for Error {
     fn from(err: &'a str) -> Error {
-        match err {
-            _ => Error::new(err),
-        }
+        Error::new(err)
     }
 }
 
-impl<'a> From<String> for Error {
+impl From<String> for Error {
     fn from(err: String) -> Error {
-        match err {
-            _ => Error::new(err),
-        }
+        Error::new(err)
     }
 }

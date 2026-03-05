@@ -82,12 +82,12 @@ fn write_string<W: Write>(w: &mut W, string: &[u8]) -> io::Result<()> {
 
 #[derive(Debug)]
 pub enum Request {
-    RequestIdentities,
+    Identities,
     AddIdentity {
         key_type: String,
         key_contents: Vec<u8>,
     },
-    SignRequest {
+    Sign {
         // Blob of the public key
         // (encoded as per RFC4253 "6.6. Public Key Algorithms").
         pubkey_blob: Vec<u8>,
@@ -106,8 +106,8 @@ impl Request {
 
         let msg = ReadBytesExt::read_u8(&mut buf)?;
         match MessageRequest::from_u8(msg) {
-            MessageRequest::RequestIdentities => Ok(Request::RequestIdentities),
-            MessageRequest::SignRequest => Ok(Request::SignRequest {
+            MessageRequest::RequestIdentities => Ok(Request::Identities),
+            MessageRequest::SignRequest => Ok(Request::Sign {
                 pubkey_blob: read_message(&mut buf).await?,
                 data: read_message(&mut buf).await?,
                 flags: ReadBytesExt::read_u32::<BigEndian>(&mut buf)?,
@@ -138,10 +138,10 @@ impl Request {
 }
 
 enum MessageResponse {
-    AgentFailure = 5,
-    AgentSuccess = 6,
-    AgentIdentitiesAnswer = 12,
-    AgentSignResponse = 14,
+    Failure = 5,
+    Success = 6,
+    IdentitiesAnswer = 12,
+    SignResponse = 14,
 }
 
 #[derive(Debug, Clone)]
@@ -170,23 +170,19 @@ impl Response {
     pub async fn write(&self, stream: &mut UnixStream) -> WritingError<()> {
         let mut buf = Vec::new();
         match *self {
-            Response::Success => {
-                WriteBytesExt::write_u8(&mut buf, MessageResponse::AgentSuccess as u8)?
-            }
-            Response::Failure => {
-                WriteBytesExt::write_u8(&mut buf, MessageResponse::AgentFailure as u8)?
-            }
+            Response::Success => WriteBytesExt::write_u8(&mut buf, MessageResponse::Success as u8)?,
+            Response::Failure => WriteBytesExt::write_u8(&mut buf, MessageResponse::Failure as u8)?,
             Response::Identities(ref identities) => {
-                WriteBytesExt::write_u8(&mut buf, MessageResponse::AgentIdentitiesAnswer as u8)?;
+                WriteBytesExt::write_u8(&mut buf, MessageResponse::IdentitiesAnswer as u8)?;
                 WriteBytesExt::write_u32::<BigEndian>(&mut buf, identities.len() as u32)?;
 
                 for identity in identities {
                     write_message(&mut buf, &identity.key_blob).await?;
-                    write_message(&mut buf, &identity.key_comment.as_bytes()).await?;
+                    write_message(&mut buf, identity.key_comment.as_bytes()).await?;
                 }
             }
             Response::SignResponse { ref signature } => {
-                WriteBytesExt::write_u8(&mut buf, MessageResponse::AgentSignResponse as u8)?;
+                WriteBytesExt::write_u8(&mut buf, MessageResponse::SignResponse as u8)?;
                 write_message(&mut buf, signature.as_slice()).await?;
             }
 
@@ -194,7 +190,7 @@ impl Response {
                 ref algo_name,
                 ref signature,
             } => {
-                WriteBytesExt::write_u8(&mut buf, MessageResponse::AgentSignResponse as u8)?;
+                WriteBytesExt::write_u8(&mut buf, MessageResponse::SignResponse as u8)?;
 
                 let mut full_sig = Vec::new();
                 write_string(&mut full_sig, algo_name.as_bytes())?;

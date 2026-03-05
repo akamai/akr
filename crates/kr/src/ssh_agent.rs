@@ -1,27 +1,23 @@
-use crate::client::Client;
-use crate::prompt::PasswordPrompt;
-use crate::protocol::{AuthenticateRequest, AuthenticateResponse, Base64Buffer, RequestBody};
-use crate::ssh_format::{SshKey, SshWirePublicKey};
 use crate::{
+    client::Client,
     error::*,
+    identity::StoredIdentity,
+    prompt::PasswordPrompt,
+    protocol::{AuthenticateRequest, AuthenticateResponse, Base64Buffer, RequestBody},
+    ssh_format::{SshFido2KeyPairHandle, SshKey, SshWirePublicKey},
     util::{read_data, read_string},
 };
-use crate::{identity::StoredIdentity, ssh_format::SshFido2KeyPairHandle};
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use eagre_asn1::der::DER;
-use eagre_asn1::der_sequence;
+use eagre_asn1::{der::DER, der_sequence};
 use osshkeys::PrivateParts;
-use ssh_agent::error::HandleResult;
-use ssh_agent::Identity;
-use ssh_agent::Response;
-use ssh_agent::SSHAgentHandler;
-use std::collections::HashMap;
-use std::ffi::OsStr;
-use std::fs;
-use std::path::Path;
+use ssh_agent::{Identity, Response, SSHAgentHandler, error::HandleResult};
 use std::{
+    collections::HashMap,
+    ffi::OsStr,
+    fs,
     io::{Cursor, Write},
+    path::Path,
     vec,
 };
 
@@ -94,11 +90,7 @@ impl Agent {
                         }
                     },
                     Err(e) => {
-                        eprintln!(
-                            "{} has no associated private key file ({})",
-                            path.display(),
-                            e
-                        );
+                        eprintln!("{} has no associated private key file ({})", path.display(), e);
                     }
                 }
             }
@@ -111,18 +103,12 @@ impl Agent {
         );
     }
 
-    async fn sign_fido2(
-        &mut self,
-        pubkey: Vec<u8>,
-        data: Vec<u8>,
-        _flags: u32,
-    ) -> HandleResult<Response> {
+    async fn sign_fido2(&mut self, pubkey: Vec<u8>, data: Vec<u8>, _flags: u32) -> HandleResult<Response> {
         // try to find the matching key handle
         let id = self
             .identities
             .iter()
-            .filter(|(pk, _)| pk.as_slice() == pubkey.as_slice())
-            .next()
+            .find(|(pk, _)| pk.as_slice() == pubkey.as_slice())
             .map(|id| id.1);
         let rp_id = if let Some(id) = &id {
             id.application.clone()
@@ -138,7 +124,7 @@ impl Agent {
         //pop a notification
         let rp_id_clone = rp_id.clone();
         tokio::spawn(async move {
-            show_notification(&rp_id_clone);
+            show_desktop_notification(&rp_id_clone);
         });
 
         let challenge_hash = sodiumoxide::crypto::hash::sha256::hash(data.as_slice())
@@ -183,7 +169,7 @@ impl Agent {
         */
         let mut data: Vec<u8> = vec![];
 
-        const SIG_TYPE_ID: &'static str = "sk-ecdsa-sha2-nistp256@openssh.com";
+        const SIG_TYPE_ID: &str = "sk-ecdsa-sha2-nistp256@openssh.com";
         data.write_u32::<BigEndian>(SIG_TYPE_ID.len() as u32)?;
         data.write_all(SIG_TYPE_ID.as_bytes())?;
 
@@ -203,18 +189,14 @@ impl Agent {
         flags: u32,
         pubkey_type: String,
     ) -> HandleResult<Response> {
-        let key = self
-            .ssh_keys
-            .iter_mut()
-            .find(|key| key.pub_key_blob() == pubkey);
+        let key = self.ssh_keys.iter_mut().find(|key| key.pub_key_blob() == pubkey);
         match key {
             Some(key) => {
                 let comment = key.comment().to_string();
                 let (signature, algo) = {
-                    let (priv_key, _ecdsa_key_pair) = match key.unlock_with(
-                        |buf| Ok(PasswordPrompt::new(comment).invoke(buf)),
-                        pubkey_type,
-                    ) {
+                    let (priv_key, _ecdsa_key_pair) = match key
+                        .unlock_with(|buf| Ok(PasswordPrompt::new(comment).invoke(buf)), pubkey_type)
+                    {
                         Ok(p) => p,
                         Err(_e) => {
                             return Ok(Response::Failure);
@@ -245,10 +227,7 @@ impl Agent {
         flags: u32,
         pubkey_type: String,
     ) -> HandleResult<Response> {
-        let key = self
-            .ssh_keys
-            .iter_mut()
-            .find(|key| key.pub_key_blob() == pubkey);
+        let key = self.ssh_keys.iter_mut().find(|key| key.pub_key_blob() == pubkey);
         match key {
             Some(key) => {
                 let comment = key.comment().to_string();
@@ -296,14 +275,11 @@ impl Agent {
         _flags: u32,
         pubkey_type: String,
     ) -> HandleResult<Response> {
-        let key = self
-            .ssh_keys
-            .iter_mut()
-            .find(|key| key.pub_key_blob() == pubkey);
+        let key = self.ssh_keys.iter_mut().find(|key| key.pub_key_blob() == pubkey);
         match key {
             Some(key) => match &key.keypair {
                 Some(keypair) => {
-                    let signature = keypair.sign(&data.as_slice()).unwrap();
+                    let signature = keypair.sign(data.as_slice()).unwrap();
 
                     Ok(Response::SignResponse2 {
                         algo_name: pubkey_type,
@@ -315,16 +291,14 @@ impl Agent {
 
                     match keypair {
                         Some(kp) => {
-                            let signature = kp.sign(&data.as_slice()).unwrap();
+                            let signature = kp.sign(data.as_slice()).unwrap();
 
                             Ok(Response::SignResponse2 {
                                 algo_name: pubkey_type,
                                 signature,
                             })
                         }
-                        None => {
-                            return Ok(Response::Failure);
-                        }
+                        None => Ok(Response::Failure),
                     }
                 }
             },
@@ -383,11 +357,7 @@ impl SSHAgentHandler for Agent {
         Ok(ids)
     }
 
-    async fn add_identity(
-        &mut self,
-        key_type: String,
-        key_blob: Vec<u8>,
-    ) -> HandleResult<Response> {
+    async fn add_identity(&mut self, key_type: String, key_blob: Vec<u8>) -> HandleResult<Response> {
         if key_type.as_str() != SshFido2KeyPairHandle::TYPE_ID {
             eprintln!("add error: not a fido2 ssh keypair");
             return Ok(Response::Success);
@@ -418,12 +388,7 @@ impl SSHAgentHandler for Agent {
         Ok(Response::Success)
     }
 
-    async fn sign_request(
-        &mut self,
-        pubkey: Vec<u8>,
-        data: Vec<u8>,
-        flags: u32,
-    ) -> HandleResult<Response> {
+    async fn sign_request(&mut self, pubkey: Vec<u8>, data: Vec<u8>, flags: u32) -> HandleResult<Response> {
         /* data:
          Packet Format (SSH_MSG_USERAUTH_REQUEST):
          string    session identifier
@@ -439,7 +404,7 @@ impl SSHAgentHandler for Agent {
         let mut cursor = Cursor::new(pubkey.clone());
         let pubkey_type = read_string(&mut cursor)?;
 
-        if pubkey_type == "sk-ecdsa-sha2-nistp256@openssh.com".to_string() {
+        if pubkey_type == "sk-ecdsa-sha2-nistp256@openssh.com" {
             self.sign_fido2(pubkey, data, flags).await
         } else if pubkey_type.contains("ssh-rsa") {
             self.sign_rsa(pubkey, data, flags, pubkey_type).await
@@ -454,11 +419,9 @@ impl SSHAgentHandler for Agent {
 }
 
 /// show a desktop notification about the pending request
-fn show_notification(rp_id: &str) {
-    #[cfg(target_os = "macos")]
-    //open issue https://github.com/h4llow3En/mac-notification-sys/issues/8
-    // let _ = mac_notification_sys::set_application(&"com.akamai.mfa");
+fn show_desktop_notification(rp_id: &str) {
     let _ = notify_rust::Notification::new()
         .summary(format!("Login Request: {}", rp_id).as_str())
+        .body("Login request has been sent.")
         .show();
 }

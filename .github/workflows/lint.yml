@@ -1,0 +1,123 @@
+name: Lint
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rustfmt:
+    runs-on: ubuntu-latest
+    concurrency:
+      # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+      group: ${{ github.head_ref || github.run_id }}/rustfmt
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Get changed files
+        id: changes
+        shell: bash
+        run: |
+          echo "rust-changed-files=$( gh pr view ${{ github.event.number }} --json files --jq '.files[].path' | grep crates | grep '\.rs$' | awk -F\| 'system("test -f " $1) == 0 { print $1}' | xargs )" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_REF: ${{ github.head_ref }}
+
+      - name: Skip if there are no changed Rust files
+        id: run-rustfmt
+        shell: bash
+        run: |
+          if [ -z "$FILES_TO_CHECK" ]; then
+            echo "should-run=false" >> $GITHUB_OUTPUT
+          else
+            echo "should-run=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          FILES_TO_CHECK: ${{ steps.changes.outputs.rust-changed-files }}
+
+      - name: Install nightly rustfmt
+        if: ${{ steps.run-rustfmt.outputs.should-run == 'true' }}
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: nightly
+          components: rustfmt
+
+      - name: Run linter
+        if: ${{ steps.run-rustfmt.outputs.should-run == 'true' }}
+        shell: bash
+        run: |
+          rustfmt +nightly --check --config skip_children=true $FILES_TO_CHECK
+        env:
+          FILES_TO_CHECK: ${{ steps.changes.outputs.rust-changed-files }}
+
+  clippy:
+    runs-on: ubuntu-latest
+    concurrency:
+      # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+      group: ${{ github.head_ref || github.run_id }}/clippy
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Get Rust toolchain channel
+        run: |
+          echo "RUST_CHANNEL=$(sed -nrE 's/^channel = "(.*)"$/\1/p' "$GITHUB_WORKSPACE"/rust-toolchain.toml)" >> $GITHUB_ENV
+
+      - name: Install Rust ${{ env.RUST_CHANNEL }}
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: ${{ env.RUST_CHANNEL }}
+          components: clippy
+
+      - name: Print Clippy version
+        run: |
+          cargo +${{ env.RUST_CHANNEL }} clippy --version
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev libxmlsec1-dev libsasl2-dev
+
+      - name: Run clippy
+        if: ${{ always() }}
+        # * Error on warnings
+        run: |
+          cargo +${{ env.RUST_CHANNEL }} clippy --workspace --tests -- -Dwarnings 
+
+  workspace:
+    runs-on: ubuntu-latest
+    concurrency:
+      # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+      group: ${{ github.head_ref || github.run_id }}/workspace
+      cancel-in-progress: true
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Get Rust toolchain channel
+        run: |
+          echo "RUST_CHANNEL=$(sed -nrE 's/^channel = "(.*)"$/\1/p' "$GITHUB_WORKSPACE"/rust-toolchain.toml)" >> $GITHUB_ENV
+
+      - name: Install Rust ${{ env.RUST_CHANNEL }}
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: ${{ env.RUST_CHANNEL }}
+
+      - name: Run lint-workspace
+        run: |
+          cargo +${{ env.RUST_CHANNEL }} run -p lint-workspace

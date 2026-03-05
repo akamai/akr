@@ -1,8 +1,9 @@
 //! GUI password prompt using pinentry
-use std::cmp;
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::process::{Command, Stdio};
+use std::{
+    cmp,
+    io::{BufReader, prelude::*},
+    process::{Command, Stdio},
+};
 
 pub struct PasswordPrompt {
     key_name: String,
@@ -10,7 +11,7 @@ pub struct PasswordPrompt {
 
 impl PasswordPrompt {
     pub fn new(key_name: String) -> Self {
-        PasswordPrompt { key_name: key_name }
+        PasswordPrompt { key_name }
     }
 
     /// Invokes the password prompt and puts the entered password into `password_buffer`.
@@ -54,6 +55,7 @@ impl PasswordPrompt {
                             let line = line.expect("failed to read line from pinentry");
                             if line.starts_with("ERR ") {
                                 pinentry.kill().expect("failed to kill pinentry");
+                                pinentry.wait().expect("failed to wait on pinentry");
                                 return 0; // Abort!
                             } else if line.starts_with("D ") {
                                 let bytes = &line.as_bytes()[2..];
@@ -62,6 +64,7 @@ impl PasswordPrompt {
                                 }
 
                                 pinentry.kill().expect("failed to kill pinentry");
+                                pinentry.wait().expect("failed to wait on pinentry");
                                 return cmp::min(bytes.len(), password_buffer.len());
                             }
                         }
@@ -73,6 +76,7 @@ impl PasswordPrompt {
         }
 
         pinentry.kill().expect("failed to kill pinentry");
-        return 0;
+        pinentry.wait().expect("failed to wait on pinentry");
+        0
     }
 }

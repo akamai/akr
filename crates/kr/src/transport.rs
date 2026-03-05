@@ -1,6 +1,7 @@
-use crate::error::Error;
-use crate::protocol::Base64Buffer;
-use crate::protocol::WireMessage;
+use crate::{
+    error::Error,
+    protocol::{Base64Buffer, WireMessage},
+};
 use async_trait::async_trait;
 use uuid::Uuid;
 

@@ -4,7 +4,7 @@ use base64_serde::base64_serde_type;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, convert::TryFrom};
 
-pub const PROTOCOL_VERSION: &'static str = "3.0.0";
+pub const PROTOCOL_VERSION: &str = "3.0.0";
 
 base64_serde_type!(Base64Format, base64::prelude::BASE64_STANDARD);
 
@@ -24,9 +24,10 @@ impl From<Vec<u8>> for Base64Buffer {
     }
 }
 
-impl ToString for Base64Buffer {
-    fn to_string(&self) -> String {
-        base64::engine::general_purpose::STANDARD.encode(&self.0)
+impl std::fmt::Display for Base64Buffer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let encoded = base64::engine::general_purpose::STANDARD.encode(&self.0);
+        write!(f, "{}", encoded)
     }
 }
 
@@ -125,11 +126,11 @@ pub struct ClientResult<T> {
     error: Option<String>,
 }
 
-impl<T> Into<Result<T, Error>> for ClientResult<T> {
-    fn into(self) -> Result<T, Error> {
-        match (self.contents, self.error) {
+impl<T> From<ClientResult<T>> for Result<T, Error> {
+    fn from(val: ClientResult<T>) -> Self {
+        match (val.contents, val.error) {
             (Some(contents), None) => Ok(contents),
-            (_, Some(e)) => Err(Error::DeviceError(e)),
+            (_, Some(e)) => Err(Error::Device(e)),
             (_, _) => Err(Error::UnexpectedResponse),
         }
     }
@@ -276,8 +277,8 @@ impl WireMessage {
 
     pub fn into_wire(self) -> Vec<u8> {
         match self {
-            Self::SealedMessage(data) => vec![vec![0x00], data].concat(),
-            Self::SealedPublicKey(data) => vec![vec![0x02], data].concat(),
+            Self::SealedMessage(data) => [vec![0x00], data].concat(),
+            Self::SealedPublicKey(data) => [vec![0x02], data].concat(),
         }
     }
 

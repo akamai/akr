@@ -1,8 +1,10 @@
-use crate::error::{QueueDenyError, QueueDenyExplanation, QueueEvaluation};
-use crate::pairing::Pairing;
-use crate::protocol::{Request, RequestBody, ResponseBody, WireMessage};
-use crate::transport::Transport;
-use crate::{error::Error, transport};
+use crate::{
+    error::{Error, QueueDenyError, QueueDenyExplanation, QueueEvaluation},
+    pairing::Pairing,
+    protocol::{Request, RequestBody, ResponseBody, WireMessage},
+    transport,
+    transport::Transport,
+};
 use std::convert::TryFrom;
 use transport::queue::QueueClient;
 use uuid::Uuid;
@@ -19,7 +21,7 @@ impl Client {
     }
 
     pub fn pairing() -> Result<Pairing, Error> {
-        Ok(Pairing::load_from_disk()?)
+        Pairing::load_from_disk()
     }
 }
 
@@ -30,10 +32,11 @@ impl Client {
         queue_uuid: Uuid,
         message: WireMessage,
     ) -> Result<(), Error> {
-        let result = self.queue_client.send(device_token, queue_uuid, message.clone()).await;
-        if result.is_err() {
-            return result;
-        }
+        let result = self
+            .queue_client
+            .send(device_token, queue_uuid, message.clone())
+            .await;
+        result?;
         Ok(())
     }
 

@@ -1,7 +1,4 @@
-use crate::create_home_path;
-use crate::error::Error;
-use crate::protocol::Base64Buffer;
-use crate::ssh_format::SshFido2KeyPairHandle;
+use crate::{create_home_path, error::Error, protocol::Base64Buffer, ssh_format::SshFido2KeyPairHandle};
 use serde::{Deserialize, Serialize};
 use sodiumoxide::hex;
 use std::path::PathBuf;
@@ -22,7 +19,7 @@ impl StoredIdentity {
     const PUBLIC_KEYS_DIR: &'static str = "pub";
 
     fn dir_path() -> Result<PathBuf, Error> {
-        Ok(create_home_path()?)
+        create_home_path()
     }
 
     fn id_path() -> Result<PathBuf, Error> {
@@ -44,9 +41,8 @@ impl StoredIdentity {
             std::fs::create_dir_all(&dir_path)?;
         }
 
-        let name = hex::encode(
-            sodiumoxide::crypto::hash::sha256::hash(handle.key_handle.as_slice()).as_ref(),
-        );
+        let name =
+            hex::encode(sodiumoxide::crypto::hash::sha256::hash(handle.key_handle.as_slice()).as_ref());
         let path = dir_path.join(&name);
         std::fs::write(path, serde_json::to_vec(handle)?)?;
         Ok(())
@@ -54,7 +50,7 @@ impl StoredIdentity {
 
     pub fn clear_stored_key_handles() -> Result<(), Error> {
         if Self::pub_keys_dir_path()?.exists() {
-            let _ = std::fs::remove_dir_all(Self::pub_keys_dir_path()?)?;
+            std::fs::remove_dir_all(Self::pub_keys_dir_path()?)?;
         }
 
         Ok(())
@@ -63,7 +59,7 @@ impl StoredIdentity {
     pub fn load_from_disk() -> Result<Self, Error> {
         let path = Self::id_path()?;
 
-        if !std::fs::metadata(&path).is_ok() {
+        if std::fs::metadata(&path).is_err() {
             return Err(Error::StoredIdentityNotFound);
         }
 
@@ -72,7 +68,7 @@ impl StoredIdentity {
 
         let key_pair_handles = if let Ok(dir) = std::fs::read_dir(Self::pub_keys_dir_path()?) {
             dir.into_iter()
-                .map(|entry| {
+                .filter_map(|entry| {
                     let path: PathBuf = entry.ok()?.path();
                     if path.is_dir() {
                         return None;
@@ -81,7 +77,6 @@ impl StoredIdentity {
                     let kp: SshFido2KeyPairHandle = serde_json::from_str(&contents).ok()?;
                     Some(kp)
                 })
-                .filter_map(std::convert::identity)
                 .collect()
         } else {
             vec![]
@@ -106,8 +101,7 @@ impl StoredIdentity {
 
         self.key_pair_handles
             .iter()
-            .map(Self::store_key_pair_handle)
-            .collect::<Result<(), Error>>()?;
+            .try_for_each(Self::store_key_pair_handle)?;
         Ok(())
     }
 }
