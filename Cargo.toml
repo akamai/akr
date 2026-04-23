@@ -59,7 +59,7 @@ bitflags = "2.11.1"
 ecdsa = "0.16.9"
 aws-lc-rs = "1.14.0"
 untrusted = "0.9.0"
-pem = "3.0.5"
+pem = "3.0.6"
 osshkeys = "0.7.0"
 
 # macOS
