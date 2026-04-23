@@ -18,6 +18,33 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+      chrono:
+        patterns:
+          - "chrono*"
+      futures:
+        patterns:
+          - "futures*"
+      openssl:
+        patterns:
+          - "openssl*"
+      serde:
+        patterns:
+          - "serde*"
+      tokio:
+        patterns:
+          - "tokio*"
+      misc:
+        patterns:
+          - "askama*"
+          - "base64*"
+          - "bitflags"
+          - "byteorder"
+          - "directories"
+          - "dirs"
+          - "thiserror"
+          - "urlencoding"
+          - "walkdir"
+          - "whoami"
 
   - package-ecosystem: "rust-toolchain"
     directory: "/"
