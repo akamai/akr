@@ -106,10 +106,10 @@ async fn pair() -> Result<(), Error> {
     let qr = PairingQr {
         public_key: keypair.public_key.clone(),
         version: PROTOCOL_VERSION.into(),
-        name: whoami::devicename(),
+        name: whoami::devicename()?,
         os: Os {
             version: whoami::platform().to_string(),
-            kind: whoami::distro(),
+            kind: whoami::distro()?,
             device_identifier: global_device_uuid()?,
         },
     };
