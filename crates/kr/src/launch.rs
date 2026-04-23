@@ -22,21 +22,21 @@ impl Daemon {
     }
 
     pub fn install(self) -> Result<(), Error> {
-        self.os_specific().install()
+        self.os_specific()?.install()
     }
 
     pub fn render(self) -> Result<String, Error> {
-        Ok(self.os_specific().render()?)
+        Ok(self.os_specific()?.render()?)
     }
 
     #[cfg(target_os = "linux")]
-    fn os_specific(self) -> SystemdService {
-        SystemdService::from(self)
+    fn os_specific(self) -> Result<SystemdService, Error> {
+        SystemdService::try_from(self)
     }
 
     #[cfg(target_os = "macos")]
-    fn os_specific(self) -> LaunchAgent {
-        LaunchAgent::from(self)
+    fn os_specific(self) -> Result<LaunchAgent, Error> {
+        Ok(LaunchAgent::from(self))
     }
 }
 
@@ -100,13 +100,15 @@ struct SystemdService {
 }
 
 #[cfg(target_os = "linux")]
-impl From<Daemon> for SystemdService {
-    fn from(d: Daemon) -> Self {
-        Self {
+impl TryFrom<Daemon> for SystemdService {
+    type Error = Error;
+
+    fn try_from(d: Daemon) -> Result<Self, Self::Error> {
+        Ok(Self {
             bin_name: d.bin_name,
             bin_path: d.bin_path,
-            current_user: whoami::username(),
-        }
+            current_user: whoami::fallible::username()?,
+        })
     }
 }
 
