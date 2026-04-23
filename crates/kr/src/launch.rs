@@ -107,7 +107,7 @@ impl TryFrom<Daemon> for SystemdService {
         Ok(Self {
             bin_name: d.bin_name,
             bin_path: d.bin_path,
-            current_user: whoami::fallible::username()?,
+            current_user: whoami::username()?,
         })
     }
 }
