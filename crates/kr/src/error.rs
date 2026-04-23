@@ -90,6 +90,9 @@ pub enum Error {
 
     #[error("Unable to parse key")]
     OsshKeys(#[from] osshkeys::error::Error),
+
+    #[error("Unable to access current environment: {0}")]
+    EnvironmentError(#[from] whoami::Error),
 }
 
 impl From<Infallible> for Error {
