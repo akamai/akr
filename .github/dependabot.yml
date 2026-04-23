@@ -18,6 +18,7 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    groups:
       chrono:
         patterns:
           - "chrono*"
@@ -42,7 +43,9 @@ updates:
           - "directories"
           - "dirs"
           - "thiserror"
+          - "toml"
           - "urlencoding"
+          - "uuid"
           - "walkdir"
           - "whoami"
 
