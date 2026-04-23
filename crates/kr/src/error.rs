@@ -92,7 +92,7 @@ pub enum Error {
     OsshKeys(#[from] osshkeys::error::Error),
 
     #[error("Unable to access current environment: {0}")]
-    EnvironmentError(#[from] whoami::Error),
+    Environment(#[from] whoami::Error),
 }
 
 impl From<Infallible> for Error {
