@@ -23,7 +23,7 @@ cast_possible_wrap = { level = "warn" }
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tokio_unstable)'] }
 
 [workspace.dependencies]
-clap = { version = "4.5.60", features = ["derive"] }
+clap = { version = "4.6.1", features = ["derive"] }
 toml = "1.1.2"
 tokio = { version = "1.52.1", features = ["full"] }
 sodiumoxide = "0.2.7"
@@ -35,17 +35,17 @@ async-trait = "0.1.89"
 base64 = "0.22.1"
 base64-serde = "0.8.0"
 thiserror = "2.0.18"
-futures = "0.3.28"
+futures = "0.3.32"
 chrono = "0.4.44"
 uuid = { version = "1.23.1", features = ["serde", "v4"] }
 env_logger = "0.11.10"
 log = "0.4.29"
 byteorder = "1.5.0"
 walkdir = "2.5.0"
-whoami = "2.1.0"
+whoami = "2.1.1"
 qr2term = "0.3.3"
 eagre-asn1 = "0.3.0"
-reqwest = { version = "0.12.28", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.13.2", default-features = false, features = ["json"] }
 askama = "0.15.6"
 notify-rust = "4.16.0"
 run_script = "0.11.2"
