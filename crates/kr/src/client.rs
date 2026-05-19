@@ -28,13 +28,14 @@ impl Client {
 impl Client {
     pub async fn send(
         &self,
-        device_token: Option<String>,
         queue_uuid: Uuid,
         message: WireMessage,
+        messaging_tokens: Option<&crate::protocol::MessagingTokens>,
+        platform: Option<crate::protocol::PushDevicePlatform>,
     ) -> Result<(), Error> {
         let result = self
             .queue_client
-            .send(device_token, queue_uuid, message.clone())
+            .send(queue_uuid, message.clone(), messaging_tokens, platform)
             .await;
         result?;
         Ok(())
@@ -58,8 +59,13 @@ impl Client {
         let request = Request::new(request);
         let wire_message = pairing.seal(&request)?;
 
-        self.send(pairing.device_token.clone(), queue_uuid, wire_message)
-            .await?;
+        self.send(
+            queue_uuid,
+            wire_message,
+            pairing.messaging_tokens.as_ref(),
+            pairing.platform,
+        )
+        .await?;
 
         let response = self
             .receive(queue_uuid, |messages| {
@@ -67,7 +73,23 @@ impl Client {
             })
             .await?;
 
-        pairing.device_token = response.device_token.or(pairing.device_token);
+        // Update messaging tokens and platform from response
+        if let Some(messaging_tokens) = response.messaging_tokens {
+            pairing.messaging_tokens = Some(messaging_tokens);
+        }
+
+        if let Some(platform) = response.platform {
+            pairing.platform = Some(platform);
+        }
+
+        // Handle legacy device_token if messaging_tokens not present
+        if pairing.messaging_tokens.is_none()
+            && let Some(device_token) = response.device_token
+        {
+            pairing.device_token = Some(device_token);
+            pairing.sanitize_device_token();
+        }
+
         pairing.store_to_disk()?;
 
         Ok(std::convert::TryFrom::try_from(response.body)?)

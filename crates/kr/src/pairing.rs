@@ -1,6 +1,8 @@
 use crate::{
     error::Error,
-    protocol::{Base64Buffer, Request, Response, ResponseBody, WireMessage},
+    protocol::{
+        Base64Buffer, MessagingTokens, PushDevicePlatform, Request, Response, ResponseBody, WireMessage,
+    },
 };
 use serde::{Deserialize, Serialize};
 use sodiumoxide::crypto::box_::{NONCEBYTES, PublicKey, SecretKey};
@@ -12,6 +14,9 @@ use uuid::Uuid;
 pub struct Pairing {
     pub device_public_key: Base64Buffer,
     pub device_name: String,
+    pub messaging_tokens: Option<MessagingTokens>,
+    pub platform: Option<PushDevicePlatform>,
+    /// Legacy token field;
     pub device_token: Option<String>,
     #[serde(flatten)]
     pub keypair: Keypair,
@@ -31,7 +36,9 @@ impl Pairing {
         }
 
         let contents = std::fs::read_to_string(path)?;
-        Ok(serde_json::from_str(&contents)?)
+        let mut pairing: Self = serde_json::from_str(&contents)?;
+        pairing.sanitize_device_token();
+        Ok(pairing)
     }
 
     pub fn store_to_disk(&self) -> Result<(), Error> {
@@ -81,6 +88,77 @@ impl Pairing {
             }
         }
         Ok(None)
+    }
+
+    /// This is considered legacy/backward-compatibility code.
+    /// Migrates device_token to messaging_tokens and platform fields.
+    fn device_token_to_messaging(&self) -> Option<(MessagingTokens, PushDevicePlatform)> {
+        self.device_token
+            .as_ref()
+            .and_then(|device_token| {
+                // device_token is a string {platform}_{devicePushToken}, we perform the split once on the separator _
+                let (platform_str, token_str) = device_token.split_once('_')?;
+                Some((platform_str, token_str))
+            })
+            .and_then(|(platform, token)| {
+                let platform = match platform {
+                    "ios" => PushDevicePlatform::Ios,
+                    "android" => PushDevicePlatform::Android,
+                    "mock" => PushDevicePlatform::Mock,
+                    _ => {
+                        println!("expected one of: ios, android, mock. Got {}", platform);
+                        return None;
+                    }
+                };
+                Some((platform, token))
+            })
+            .map(|(platform, token)| match platform {
+                PushDevicePlatform::Ios => {
+                    let (token_without_prefix, use_apns_sandbox_server) =
+                        Self::token_without_sandbox_prefix(token.to_owned());
+                    (
+                        MessagingTokens {
+                            apns_token: Some(token_without_prefix),
+                            fcm_token: None,
+                            use_apns_sandbox_server,
+                            apple_bundle_id: None,
+                        },
+                        platform,
+                    )
+                }
+                PushDevicePlatform::Android | PushDevicePlatform::Mock => (
+                    MessagingTokens {
+                        apns_token: None,
+                        fcm_token: Some(token.to_owned()),
+                        use_apns_sandbox_server: false,
+                        apple_bundle_id: None,
+                    },
+                    platform,
+                ),
+            })
+    }
+
+    /// Only used for legacy push notification tokens. These were sent to us by clients with a
+    /// prefix to indicate when the token is for the APNs sandbox environment, primarily for iOS
+    /// debug builds.
+    fn token_without_sandbox_prefix(mut token: String) -> (String, bool) {
+        let sandbox = token.starts_with("sandbox:");
+        if sandbox {
+            token = token.replacen("sandbox:", "", 1);
+        }
+        (token, sandbox)
+    }
+
+    /// Sets messaging tokens and platform by way of the device token.
+    /// This is a backwards compatibility step we run when the pairing is first accessed.
+    pub fn sanitize_device_token(&mut self) {
+        if (self.messaging_tokens.is_none() || self.platform.is_none())
+            && let Some((messaging_tokens, platform)) = self.device_token_to_messaging()
+        {
+            self.messaging_tokens = Some(messaging_tokens);
+            self.platform = Some(platform);
+        }
+        self.device_token = None;
     }
 }
 
