@@ -1,6 +1,6 @@
 use crate::{
     error::Error,
-    protocol::{Base64Buffer, WireMessage},
+    protocol::{Base64Buffer, MessagingTokens, PushDevicePlatform, WireMessage},
 };
 use async_trait::async_trait;
 use uuid::Uuid;
@@ -10,9 +10,10 @@ pub trait Transport {
     async fn create_queue(&self, queue_uuid: Uuid) -> Result<(), Error>;
     async fn send(
         &self,
-        device_token: Option<String>,
         queue_uuid: Uuid,
         message: WireMessage,
+        messaging_tokens: Option<&MessagingTokens>,
+        platform: Option<PushDevicePlatform>,
     ) -> Result<(), Error>;
     async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
     where
@@ -43,6 +44,8 @@ pub mod queue {
     }
 
     impl QueueClient {
+        const API_VERSION: &'static str = "2026-04-15";
+        const API_VERSION_HEADER: &'static str = "X-Api-Version";
         const URL: &'static str = "https://mfa.akamai.com/api/v1/device/krypton/channel";
 
         pub fn new() -> Self {
@@ -54,16 +57,39 @@ pub mod queue {
         async fn send_inner(
             &self,
             queue_name: &str,
-            device_token: Option<String>,
             message: WireMessage,
+            messaging_tokens: Option<&MessagingTokens>,
+            platform: Option<PushDevicePlatform>,
         ) -> Result<(), Error> {
-            let query = device_token
-                .map(|t| format!("?device_token={}", t))
-                .unwrap_or("".to_string());
-            let url = format!("{}/{}{}", Self::URL, queue_name, query);
+            let url = format!("{}/{}", Self::URL, queue_name);
 
-            let message = Base64Buffer(message.into_wire()).to_string();
-            let _ = self.client.post(url).body(message).send().await?;
+            #[derive(serde::Serialize, Debug)]
+            struct KryptonQueuePostBody<'a> {
+                /// Message to post to the queue
+                pub message: String,
+
+                /// APNs and FCM tokens when available
+                #[serde(skip_serializing_if = "Option::is_none")]
+                pub messaging_tokens: Option<&'a MessagingTokens>,
+
+                /// Device platform such as iOS or Android
+                #[serde(skip_serializing_if = "Option::is_none")]
+                pub platform: Option<PushDevicePlatform>,
+            }
+
+            let body = KryptonQueuePostBody {
+                message: Base64Buffer(message.into_wire()).to_string(),
+                messaging_tokens,
+                platform,
+            };
+
+            let _ = self
+                .client
+                .post(url)
+                .header(Self::API_VERSION_HEADER, Self::API_VERSION)
+                .json(&body)
+                .send()
+                .await?;
             Ok(())
         }
 
@@ -115,12 +141,14 @@ pub mod queue {
 
         async fn send(
             &self,
-            device_token: Option<String>,
             queue_uuid: Uuid,
             message: WireMessage,
+            messaging_tokens: Option<&MessagingTokens>,
+            platform: Option<PushDevicePlatform>,
         ) -> Result<(), Error> {
             let queue = QueueName(queue_uuid);
-            self.send_inner(&queue.send(), device_token, message).await
+            self.send_inner(&queue.send(), message, messaging_tokens, platform)
+                .await
         }
 
         async fn receive<T, F>(&self, queue_uuid: Uuid, on_messages: F) -> Result<T, Error>
@@ -138,7 +166,7 @@ pub mod queue {
             let msg = WireMessage::SealedMessage(fake_message.clone());
 
             let queue = QueueName(queue_uuid);
-            self.send_inner(&queue.receive(), None, msg).await?;
+            self.send_inner(&queue.receive(), msg, None, None).await?;
 
             self.receive(queue_uuid, |msg| {
                 for wire_message in msg {

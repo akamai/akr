@@ -142,12 +142,15 @@ async fn pair() -> Result<(), Error> {
         device_public_key: device_public_key.0.to_vec().into(),
         device_token: None,
         device_name: String::new(),
+        messaging_tokens: None,
+        platform: None,
     };
 
     let request = Request::new(RequestBody::Id(IdRequest {
         send_sk_accounts: true,
     }));
-    client.send(None, queue_uuid, pairing.seal(&request)?).await?;
+    let wire_message = pairing.seal(&request)?;
+    client.send(queue_uuid, wire_message, None, None).await?;
     let response = client
         .receive(queue_uuid, |messages| {
             pairing.find_response(&request.id, messages)
@@ -160,7 +163,23 @@ async fn pair() -> Result<(), Error> {
     };
 
     pairing.device_name = id_response.data.device_name.clone();
-    pairing.device_token = response.device_token;
+
+    // Update messaging tokens and platform from response
+    if let Some(messaging_tokens) = response.messaging_tokens {
+        pairing.messaging_tokens = Some(messaging_tokens);
+    }
+    if let Some(platform) = response.platform {
+        pairing.platform = Some(platform);
+    }
+
+    // Handle legacy device_token if messaging_tokens not present
+    if pairing.messaging_tokens.is_none()
+        && let Some(device_token) = response.device_token
+    {
+        pairing.device_token = Some(device_token);
+        pairing.sanitize_device_token();
+    }
+
     pairing.store_to_disk()?;
 
     let id = StoredIdentity {
@@ -198,7 +217,12 @@ async fn unpair() -> Result<(), Error> {
     let wire_message = pairing.seal(&request)?;
 
     client
-        .send(pairing.device_token.clone(), queue_uuid, wire_message)
+        .send(
+            queue_uuid,
+            wire_message,
+            pairing.messaging_tokens.as_ref(),
+            pairing.platform,
+        )
         .await?;
 
     Pairing::delete_pairing_file()?;

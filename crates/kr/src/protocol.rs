@@ -107,9 +107,41 @@ pub struct AuthenticateRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnpairRequest {}
 
+/// Tokens and configuration required for sending push notifications over Apple Push Notification
+/// service (APNs) and Firebase Cloud Messaging (FCM).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MessagingTokens {
+    /// Legacy registration token for Apple Push Notification service.
+    pub apns_token: Option<String>,
+    /// Firebase cloud messaging device token, used for Android and iOS
+    pub fcm_token: Option<String>,
+    /// This is typically true for debug iOS builds
+    #[serde(default)]
+    pub use_apns_sandbox_server: bool,
+    /// Bundle ID corresponding to the APNs certificate
+    pub apple_bundle_id: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum PushDevicePlatform {
+    Ios,
+    Android,
+    Mock,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Response {
     pub request_id: String,
+
+    // Device tokens for push notifications on APNs and FCM
+    pub messaging_tokens: Option<MessagingTokens>,
+
+    /// Device platform such as iOS or Android
+    pub platform: Option<PushDevicePlatform>,
+
+    // Legacy token format which uses <platform>_<token> string encoding. Only remove in the future
+    // when apps are no longer sending responses in this format. Could take a year or longer.
     pub device_token: Option<String>,
 
     #[serde(rename = "v")]
