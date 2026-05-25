@@ -151,7 +151,7 @@ impl Pairing {
 
     /// Sets messaging tokens and platform by way of the device token.
     /// This is a backwards compatibility step we run when the pairing is first accessed.
-    pub fn sanitize_device_token(&mut self) {
+    fn sanitize_device_token(&mut self) {
         if (self.messaging_tokens.is_none() || self.platform.is_none())
             && let Some((messaging_tokens, platform)) = self.device_token_to_messaging()
         {
@@ -159,6 +159,34 @@ impl Pairing {
             self.platform = Some(platform);
         }
         self.device_token = None;
+    }
+
+    /// Updates the pairing's messaging tokens and platform based on the response from the device.
+    pub fn update_from_response(&mut self, response: &Response) -> bool {
+        let mut changed = false;
+
+        if let Some(messaging_tokens) = &response.messaging_tokens
+            && self.messaging_tokens.as_ref() != Some(messaging_tokens) {
+            self.messaging_tokens = Some(messaging_tokens.clone());
+            changed = true;
+        }
+
+        if let Some(platform) = response.platform
+            && self.platform != Some(platform) {
+            self.platform = Some(platform);
+            changed = true;
+        }
+
+        // Handle legacy device_token if messaging_tokens not present
+        if self.messaging_tokens.is_none()
+            && let Some(device_token) = &response.device_token
+        {
+            self.device_token = Some(device_token.clone());
+            self.sanitize_device_token();
+            changed = true;
+        }
+
+        changed
     }
 }
 

@@ -74,23 +74,9 @@ impl Client {
             .await?;
 
         // Update messaging tokens and platform from response
-        if let Some(messaging_tokens) = response.messaging_tokens {
-            pairing.messaging_tokens = Some(messaging_tokens);
+        if pairing.update_from_response(&response) {
+            pairing.store_to_disk()?;
         }
-
-        if let Some(platform) = response.platform {
-            pairing.platform = Some(platform);
-        }
-
-        // Handle legacy device_token if messaging_tokens not present
-        if pairing.messaging_tokens.is_none()
-            && let Some(device_token) = response.device_token
-        {
-            pairing.device_token = Some(device_token);
-            pairing.sanitize_device_token();
-        }
-
-        pairing.store_to_disk()?;
 
         Ok(std::convert::TryFrom::try_from(response.body)?)
     }

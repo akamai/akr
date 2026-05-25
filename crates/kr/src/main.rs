@@ -157,29 +157,14 @@ async fn pair() -> Result<(), Error> {
         })
         .await?;
 
-    let id_response: IdResponse = match response.body {
+    let id_response: IdResponse = match response.clone().body {
         ResponseBody::Id(resp) => Into::<Result<IdResponse, Error>>::into(resp)?,
         _ => return Err(Error::InvalidPairingHelloMessage),
     };
 
     pairing.device_name = id_response.data.device_name.clone();
 
-    // Update messaging tokens and platform from response
-    if let Some(messaging_tokens) = response.messaging_tokens {
-        pairing.messaging_tokens = Some(messaging_tokens);
-    }
-    if let Some(platform) = response.platform {
-        pairing.platform = Some(platform);
-    }
-
-    // Handle legacy device_token if messaging_tokens not present
-    if pairing.messaging_tokens.is_none()
-        && let Some(device_token) = response.device_token
-    {
-        pairing.device_token = Some(device_token);
-        pairing.sanitize_device_token();
-    }
-
+    let _changed = pairing.update_from_response(&response);
     pairing.store_to_disk()?;
 
     let id = StoredIdentity {

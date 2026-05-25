@@ -109,7 +109,7 @@ pub struct UnpairRequest {}
 
 /// Tokens and configuration required for sending push notifications over Apple Push Notification
 /// service (APNs) and Firebase Cloud Messaging (FCM).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MessagingTokens {
     /// Legacy registration token for Apple Push Notification service.
     pub apns_token: Option<String>,
