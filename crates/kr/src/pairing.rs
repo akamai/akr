@@ -166,13 +166,15 @@ impl Pairing {
         let mut changed = false;
 
         if let Some(messaging_tokens) = &response.messaging_tokens
-            && self.messaging_tokens.as_ref() != Some(messaging_tokens) {
+            && self.messaging_tokens.as_ref() != Some(messaging_tokens)
+        {
             self.messaging_tokens = Some(messaging_tokens.clone());
             changed = true;
         }
 
         if let Some(platform) = response.platform
-            && self.platform != Some(platform) {
+            && self.platform != Some(platform)
+        {
             self.platform = Some(platform);
             changed = true;
         }
