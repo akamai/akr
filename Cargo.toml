@@ -45,7 +45,7 @@ walkdir = "2.5.0"
 whoami = "2.1.2"
 qr2term = "0.3.3"
 eagre-asn1 = "0.3.0"
-reqwest = { version = "0.13.4", default-features = false, features = ["json"] }
+reqwest = { version = "0.13.4", features = ["json"] }
 askama = "0.16.0"
 notify-rust = "4.17.0"
 run_script = "0.11.2"
