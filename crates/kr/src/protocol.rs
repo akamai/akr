@@ -111,9 +111,9 @@ pub struct UnpairRequest {}
 /// service (APNs) and Firebase Cloud Messaging (FCM).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MessagingTokens {
-    /// Legacy registration token for Apple Push Notification service.
+    /// Messaging token for the Apple Push Notification service
     pub apns_token: Option<String>,
-    /// Firebase cloud messaging device token, used for Android and iOS
+    /// Messaging token for the Firebase Cloud Messaging service
     pub fcm_token: Option<String>,
     /// This is typically true for debug iOS builds
     #[serde(default)]

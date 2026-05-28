@@ -4,9 +4,9 @@ use crate::{
         Base64Buffer, MessagingTokens, PushDevicePlatform, Request, Response, ResponseBody, WireMessage,
     },
 };
+use ansi_term::Color::Red;
 use serde::{Deserialize, Serialize};
 use sodiumoxide::crypto::box_::{NONCEBYTES, PublicKey, SecretKey};
-
 use std::path::PathBuf;
 use uuid::Uuid;
 
@@ -16,7 +16,7 @@ pub struct Pairing {
     pub device_name: String,
     pub messaging_tokens: Option<MessagingTokens>,
     pub platform: Option<PushDevicePlatform>,
-    /// Legacy token field;
+    /// Legacy messaging token field
     pub device_token: Option<String>,
     #[serde(flatten)]
     pub keypair: Keypair,
@@ -96,7 +96,7 @@ impl Pairing {
         self.device_token
             .as_ref()
             .and_then(|device_token| {
-                // device_token is a string {platform}_{devicePushToken}, we perform the split once on the separator _
+                // device_token is a string formatted as {platform}_{token}
                 let (platform_str, token_str) = device_token.split_once('_')?;
                 Some((platform_str, token_str))
             })
@@ -106,7 +106,10 @@ impl Pairing {
                     "android" => PushDevicePlatform::Android,
                     "mock" => PushDevicePlatform::Mock,
                     _ => {
-                        println!("expected one of: ios, android, mock. Got {}", platform);
+                        eprintln!(
+                            "{}",
+                            Red.paint(format!("expected one of: ios, android, mock. Got {}", platform))
+                        );
                         return None;
                     }
                 };
