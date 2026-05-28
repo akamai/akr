@@ -28,13 +28,14 @@ impl Client {
 impl Client {
     pub async fn send(
         &self,
-        device_token: Option<String>,
         queue_uuid: Uuid,
         message: WireMessage,
+        messaging_tokens: Option<&crate::protocol::MessagingTokens>,
+        platform: Option<crate::protocol::PushDevicePlatform>,
     ) -> Result<(), Error> {
         let result = self
             .queue_client
-            .send(device_token, queue_uuid, message.clone())
+            .send(queue_uuid, message.clone(), messaging_tokens, platform)
             .await;
         result?;
         Ok(())
@@ -58,8 +59,13 @@ impl Client {
         let request = Request::new(request);
         let wire_message = pairing.seal(&request)?;
 
-        self.send(pairing.device_token.clone(), queue_uuid, wire_message)
-            .await?;
+        self.send(
+            queue_uuid,
+            wire_message,
+            pairing.messaging_tokens.as_ref(),
+            pairing.platform,
+        )
+        .await?;
 
         let response = self
             .receive(queue_uuid, |messages| {
@@ -67,8 +73,10 @@ impl Client {
             })
             .await?;
 
-        pairing.device_token = response.device_token.or(pairing.device_token);
-        pairing.store_to_disk()?;
+        // Update messaging tokens and platform from response
+        if pairing.update_from_response(&response) {
+            pairing.store_to_disk()?;
+        }
 
         Ok(std::convert::TryFrom::try_from(response.body)?)
     }

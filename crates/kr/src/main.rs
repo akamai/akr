@@ -142,25 +142,29 @@ async fn pair() -> Result<(), Error> {
         device_public_key: device_public_key.0.to_vec().into(),
         device_token: None,
         device_name: String::new(),
+        messaging_tokens: None,
+        platform: None,
     };
 
     let request = Request::new(RequestBody::Id(IdRequest {
         send_sk_accounts: true,
     }));
-    client.send(None, queue_uuid, pairing.seal(&request)?).await?;
+    let wire_message = pairing.seal(&request)?;
+    client.send(queue_uuid, wire_message, None, None).await?;
     let response = client
         .receive(queue_uuid, |messages| {
             pairing.find_response(&request.id, messages)
         })
         .await?;
 
-    let id_response: IdResponse = match response.body {
+    let id_response: IdResponse = match response.clone().body {
         ResponseBody::Id(resp) => Into::<Result<IdResponse, Error>>::into(resp)?,
         _ => return Err(Error::InvalidPairingHelloMessage),
     };
 
     pairing.device_name = id_response.data.device_name.clone();
-    pairing.device_token = response.device_token;
+
+    let _changed = pairing.update_from_response(&response);
     pairing.store_to_disk()?;
 
     let id = StoredIdentity {
@@ -198,7 +202,12 @@ async fn unpair() -> Result<(), Error> {
     let wire_message = pairing.seal(&request)?;
 
     client
-        .send(pairing.device_token.clone(), queue_uuid, wire_message)
+        .send(
+            queue_uuid,
+            wire_message,
+            pairing.messaging_tokens.as_ref(),
+            pairing.platform,
+        )
         .await?;
 
     Pairing::delete_pairing_file()?;
