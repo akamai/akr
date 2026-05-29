@@ -115,10 +115,24 @@ sudo yum -y install akr
 sudo yum -y install pinentry-gtk
 ```
 
-
 ### Build from source
 
 `akr` is built entirely with Rust. Ensure you have Rust installed (https://rustup.rs) and run `cargo build`.
+
+### Setup VM for testing
+
+To test `akr` end-to-end, you can setup a local VM with Orbstack (https://orbstack.dev/download). Once Orbstack is installed, you can follow these steps:
+
+1. Create a Linux machine with the Latest LTS ubuntu image.
+2. Build `akr` from source with `cargo build`.
+3. Run `./target/debug/akr setup` on your local machine to start the ssh-agent and update your ssh config.
+4. Run `./target/debug/akr pair` to scan the QR code and pair your phone with the Akamai MFA app.
+5. Run `./target/debug/akr generate --name testkey` to generate a new SSH key in the Akamai MFA app and get the public key output.
+6. Drop your public key into `~/.orbstack/ssh/authorized_keys` on your local home directory (not within the VM).
+7. Stop the machine if running quit and restart Orbstack to be able to use the new public key.
+8. Then you can connect to any of the VMs with `ssh user@<machine-name>.orb.local`.
+
+For more details on OrbStack SSH configuration, see: https://docs.orbstack.dev/machines/ssh#authentication.
 
 ## Notes on Configuration
 
