@@ -1787,7 +1787,8 @@ dependencies = [
 [[package]]
 name = "libsodium-sys"
 version = "0.2.7"
-source = "git+https://github.com/spd-mfa/sodiumoxide?rev=2026-06-18.1#1154b1e5a16fef0494f721c1b824e4be4b40076d"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b779387cd56adfbc02ea4a668e704f729be8d6a6abd2c27ca5ee537849a92fd"
 dependencies = [
  "cc",
  "libc",
@@ -2957,7 +2958,8 @@ dependencies = [
 [[package]]
 name = "sodiumoxide"
 version = "0.2.7"
-source = "git+https://github.com/spd-mfa/sodiumoxide?rev=2026-06-18.1#1154b1e5a16fef0494f721c1b824e4be4b40076d"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e26be3acb6c2d9a7aac28482586a7856436af4cfe7100031d219de2d2ecb0028"
 dependencies = [
  "ed25519 1.5.3",
  "libc",
