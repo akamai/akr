@@ -137,6 +137,8 @@ jobs:
         shell: sh
         run: |
           . "$HOME/.cargo/env"
+          # Use gcc-toolset-13 on Rocky 8 so libsodium-sys 0.2.7's bundled libsodium 1.0.18
+          # links its SIMD symbols cleanly (Rocky 8's default GCC 8 fails). No-op elsewhere.
           if [ -f /opt/rh/gcc-toolset-13/enable ]; then
             . /opt/rh/gcc-toolset-13/enable
             export CC=gcc CXX=g++
