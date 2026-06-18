@@ -163,5 +163,5 @@ and send communications to [security@akamai.com](mailto://security@akamai.com).
 
 # License
 
-Copyright (c) 2021, Akamai Technologies.
+Copyright (c) 2026, Akamai Technologies.
 All rights reserved.
