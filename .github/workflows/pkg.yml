@@ -49,21 +49,21 @@ jobs:
         run: cargo install cargo-deb --vers=${{ env.CARGO_DEB_VER }} --locked
 
       - name: Create package
-        run: cargo deb -p akr -o akr.deb
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          VERSION: ${{ github.event.release.tag_name }}
+        run: cargo deb -p akr -o "akr_${VERSION}_${PLATFORM}_amd64.deb"
 
       - name: Verify package
         run: |
           # do not use exit codes while errors occured
-          lintian -v akr.deb || true
+          lintian -v akr_*.deb || true
 
       - name: Upload deb asset to release
         if: ${{ github.event.release.upload_url }}
-        uses: Shopify/upload-to-release@c77c9b3e5d288adaef98a7007bf92340ec6ce03b # v2.0.0
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
-          name: akr_${{ github.event.release.tag_name }}_${{ matrix.platform }}_amd64.deb
-          path: akr.deb
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          content-type: application/vnd.debian.binary-package
+          files: akr_*.deb
 
   rhel:
     name: RHEL-compatible packages (Rocky Linux)
@@ -139,24 +139,24 @@ jobs:
 
       - name: Create package
         shell: sh
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          VERSION: ${{ github.event.release.tag_name }}
         run: |
           . "$HOME/.cargo/env"
-          cargo generate-rpm -p crates/kr -o akr.rpm
+          cargo generate-rpm -p crates/kr -o "akr_${VERSION}_${PLATFORM}.rpm"
 
       - name: Verify package
         shell: sh
         run: |
           # do not use exit codes when errors occurred
-          rpm -qip akr.rpm || true
+          rpm -qip akr_*.rpm || true
 
       - name: Upload rpm asset to release
         if: ${{ github.event.release.upload_url }}
-        uses: Shopify/upload-to-release@c77c9b3e5d288adaef98a7007bf92340ec6ce03b # v2.0.0
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
-          name: akr_${{ github.event.release.tag_name }}_${{ matrix.platform }}.rpm
-          path: akr.rpm
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          content-type: application/x-rpm
+          files: akr_*.rpm
 
   centos:
     name: CentOS Stream packages
@@ -208,18 +208,18 @@ jobs:
         run: dist=$(rpm --eval %{?dist}); sed -i -e 's/release = "\(.*\)"/release = "\1'$dist'"/g' Cargo.toml
 
       - name: Create package
-        run: cargo generate-rpm -p crates/kr -o akr.rpm
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          VERSION: ${{ github.event.release.tag_name }}
+        run: cargo generate-rpm -p crates/kr -o "akr_${VERSION}_${PLATFORM}.rpm"
 
       - name: Verify package
         run: |
           # do not use exit codes when errors occurred
-          rpm -qip akr.rpm || true
+          rpm -qip akr_*.rpm || true
 
       - name: Upload rpm asset to release
         if: ${{ github.event.release.upload_url }}
-        uses: Shopify/upload-to-release@c77c9b3e5d288adaef98a7007bf92340ec6ce03b # v2.0.0
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
-          name: akr_${{ github.event.release.tag_name }}_${{ matrix.platform }}.rpm
-          path: akr.rpm
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          content-type: application/x-rpm
+          files: akr_*.rpm
