@@ -69,6 +69,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - image: "rockylinux/rockylinux:8"
+            platform: "rhel8"
+            repo: "powertools"
           - image: "rockylinux/rockylinux:9"
             platform: "rhel9"
             repo: "crb"
