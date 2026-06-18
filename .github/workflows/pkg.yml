@@ -99,7 +99,15 @@ jobs:
       - name: Install common libs
         shell: sh
         run: |
-          dnf install -y gcc make openssl-devel gzip git curl
+          # Don't install `curl` — `curl-minimal` is preinstalled and conflicts on RHEL 9+ images.
+          dnf install -y gcc make openssl-devel gzip git
+
+      - name: Install gcc-toolset-13 (RHEL 8 only)
+        if: matrix.platform == 'rhel8'
+        shell: sh
+        # libsodium-sys 0.2.7's bundled libsodium 1.0.18 fails to link SIMD symbols under
+        # Rocky 8's GCC 8; gcc-toolset-13 provides a newer toolchain that handles it.
+        run: dnf install -y gcc-toolset-13
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -129,6 +137,10 @@ jobs:
         shell: sh
         run: |
           . "$HOME/.cargo/env"
+          if [ -f /opt/rh/gcc-toolset-13/enable ]; then
+            . /opt/rh/gcc-toolset-13/enable
+            export CC=gcc CXX=g++
+          fi
           cargo build --release
 
       - name: Remove all symbol and relocation information
@@ -181,7 +193,8 @@ jobs:
         run: |
           dnf install -y dnf-plugins-core epel-release
           dnf config-manager --set-enabled crb || true
-          dnf install -y gcc make openssl-devel gzip git curl
+          # Don't install `curl` — `curl-minimal` is preinstalled and conflicts on CentOS Stream 9+ images.
+          dnf install -y gcc make openssl-devel gzip git
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
