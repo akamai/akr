@@ -100,7 +100,10 @@ jobs:
         shell: sh
         run: |
           # Don't install `curl` — `curl-minimal` is preinstalled and conflicts on RHEL 9+ images.
-          dnf install -y gcc make openssl-devel gzip git
+          # `findutils` and `diffutils` aren't in the Rocky 8 minimal image; libtool's archive
+          # merging silently fails without `find`, leaving libsodium's SIMD .o files out of
+          # libsodium.a and causing make-check link errors.
+          dnf install -y gcc make openssl-devel gzip git findutils diffutils
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -183,7 +186,7 @@ jobs:
           dnf install -y dnf-plugins-core epel-release
           dnf config-manager --set-enabled crb || true
           # Don't install `curl` — `curl-minimal` is preinstalled and conflicts on CentOS Stream 9+ images.
-          dnf install -y gcc make openssl-devel gzip git
+          dnf install -y gcc make openssl-devel gzip git findutils diffutils
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
