@@ -28,7 +28,7 @@ dependencies = [
 
 [[package]]
 name = "akr"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "ansi_term",
  "askama",
@@ -1807,7 +1807,7 @@ dependencies = [
 
 [[package]]
 name = "lint-workspace"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "toml",
  "walkdir",
@@ -2979,7 +2979,7 @@ dependencies = [
 
 [[package]]
 name = "ssh_agent"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "async-trait",
  "byteorder 1.5.0",
