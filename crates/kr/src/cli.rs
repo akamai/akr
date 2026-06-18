@@ -6,7 +6,7 @@ use clap::{
 /// Akamai MFA CLI and SSH Agent
 #[derive(Parser)]
 #[clap(
-    version = "1.2.0",
+    version = "1.2.1",
     author = "Akamai MFA <mfa.akamai.com/help>",
     name = "akr - Akamai Krypton"
 )]
