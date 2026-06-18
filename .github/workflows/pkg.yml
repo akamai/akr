@@ -31,7 +31,7 @@ jobs:
       - name: Install common libs
         run: |
           apt-get update -y
-          apt-get install -y build-essential curl git pkg-config libssl-dev lintian libpqxx-dev libxmlsec1-dev libclang-dev gh
+          apt-get install -y build-essential curl git pkg-config libssl-dev lintian libpqxx-dev libxmlsec1-dev libclang-dev
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -58,14 +58,12 @@ jobs:
 
       - name: Upload deb asset to release
         if: ${{ github.event.release.upload_url }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PLATFORM: ${{ matrix.platform }}
-          VERSION: ${{ github.event.release.tag_name }}
-        run: |
-          git config --global --add safe.directory ${GITHUB_WORKSPACE}
-          mv akr.deb akr_${VERSION}_${PLATFORM}_amd64.deb
-          gh release upload $VERSION akr_${VERSION}_${PLATFORM}_amd64.deb
+        uses: Shopify/upload-to-release@c77c9b3e5d288adaef98a7007bf92340ec6ce03b # v2.0.0
+        with:
+          name: akr_${{ github.event.release.tag_name }}_${{ matrix.platform }}_amd64.deb
+          path: akr.deb
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          content-type: application/vnd.debian.binary-package
 
   rhel:
     name: RHEL-compatible packages (Rocky Linux)
@@ -101,17 +99,7 @@ jobs:
       - name: Install common libs
         shell: sh
         run: |
-          dnf install -y gcc make openssl-devel gzip git curl tar
-
-      - name: Install GitHub CLI
-        shell: sh
-        run: |
-          # Install gh from upstream tarball to avoid DNF4/DNF5 repo syntax differences across RHEL versions
-          GH_VERSION=2.62.0
-          curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" -o /tmp/gh.tar.gz
-          tar -xzf /tmp/gh.tar.gz -C /tmp
-          install -m 0755 "/tmp/gh_${GH_VERSION}_linux_amd64/bin/gh" /usr/local/bin/gh
-          gh --version
+          dnf install -y gcc make openssl-devel gzip git curl
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -163,14 +151,12 @@ jobs:
 
       - name: Upload rpm asset to release
         if: ${{ github.event.release.upload_url }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PLATFORM: ${{ matrix.platform }}
-          VERSION: ${{ github.event.release.tag_name }}
-        run: |
-          mv akr.rpm akr_${VERSION}_${PLATFORM}.rpm
-          git config --global --add safe.directory ${GITHUB_WORKSPACE}
-          gh release upload $VERSION akr_${VERSION}_${PLATFORM}.rpm
+        uses: Shopify/upload-to-release@c77c9b3e5d288adaef98a7007bf92340ec6ce03b # v2.0.0
+        with:
+          name: akr_${{ github.event.release.tag_name }}_${{ matrix.platform }}.rpm
+          path: akr.rpm
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          content-type: application/x-rpm
 
   centos:
     name: CentOS Stream packages
@@ -195,15 +181,7 @@ jobs:
         run: |
           dnf install -y dnf-plugins-core epel-release
           dnf config-manager --set-enabled crb || true
-          dnf install -y gcc make openssl-devel gzip git curl tar
-
-      - name: Install GitHub CLI
-        run: |
-          GH_VERSION=2.62.0
-          curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" -o /tmp/gh.tar.gz
-          tar -xzf /tmp/gh.tar.gz -C /tmp
-          install -m 0755 "/tmp/gh_${GH_VERSION}_linux_amd64/bin/gh" /usr/local/bin/gh
-          gh --version
+          dnf install -y gcc make openssl-devel gzip git curl
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -239,11 +217,9 @@ jobs:
 
       - name: Upload rpm asset to release
         if: ${{ github.event.release.upload_url }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PLATFORM: ${{ matrix.platform }}
-          VERSION: ${{ github.event.release.tag_name }}
-        run: |
-          mv akr.rpm akr_${VERSION}_${PLATFORM}.rpm
-          git config --global --add safe.directory ${GITHUB_WORKSPACE}
-          gh release upload $VERSION akr_${VERSION}_${PLATFORM}.rpm
+        uses: Shopify/upload-to-release@c77c9b3e5d288adaef98a7007bf92340ec6ce03b # v2.0.0
+        with:
+          name: akr_${{ github.event.release.tag_name }}_${{ matrix.platform }}.rpm
+          path: akr.rpm
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          content-type: application/x-rpm
