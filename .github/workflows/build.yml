@@ -97,6 +97,7 @@ jobs:
           # `findutils` and `diffutils` aren't in the Rocky 8 minimal image; libtool's archive
           # merging silently fails without `find`, leaving libsodium's SIMD .o files out of
           # libsodium.a and causing make-check link errors.
+          # findutils + diffutils can be dropped once we replace the (unmaintained) sodiumoxide crate.
           dnf install -y gcc make openssl-devel gzip rpmlint git findutils diffutils
 
       - name: Checkout
@@ -150,7 +151,7 @@ jobs:
       - name: Upload RPM
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: akr_${{ matrix.platform }}.rpm
+          name: akr_${{ matrix.platform }}_x86_64.rpm
           path: akr.rpm
 
   centos:
@@ -175,6 +176,7 @@ jobs:
           dnf install -y dnf-plugins-core epel-release
           dnf config-manager --set-enabled crb || true
           # Don't install `curl` — `curl-minimal` is preinstalled and conflicts on CentOS Stream 9+ images.
+          # findutils + diffutils can be dropped once we replace the (unmaintained) sodiumoxide crate.
           dnf install -y gcc make openssl-devel gzip rpmlint git findutils diffutils
 
       - name: Checkout
@@ -212,5 +214,5 @@ jobs:
       - name: Upload RPM
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: akr_${{ matrix.platform }}.rpm
+          name: akr_${{ matrix.platform }}_x86_64.rpm
           path: akr.rpm

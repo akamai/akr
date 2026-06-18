@@ -103,6 +103,7 @@ jobs:
           # `findutils` and `diffutils` aren't in the Rocky 8 minimal image; libtool's archive
           # merging silently fails without `find`, leaving libsodium's SIMD .o files out of
           # libsodium.a and causing make-check link errors.
+          # findutils + diffutils can be dropped once we replace the (unmaintained) sodiumoxide crate.
           dnf install -y gcc make openssl-devel gzip git findutils diffutils
 
       - name: Checkout
@@ -148,7 +149,7 @@ jobs:
           VERSION: ${{ github.event.release.tag_name }}
         run: |
           . "$HOME/.cargo/env"
-          cargo generate-rpm -p crates/kr -o "akr_${VERSION}_${PLATFORM}.rpm"
+          cargo generate-rpm -p crates/kr -o "akr_${VERSION}_${PLATFORM}_x86_64.rpm"
 
       - name: Verify package
         shell: sh
@@ -186,6 +187,7 @@ jobs:
           dnf install -y dnf-plugins-core epel-release
           dnf config-manager --set-enabled crb || true
           # Don't install `curl` — `curl-minimal` is preinstalled and conflicts on CentOS Stream 9+ images.
+          # findutils + diffutils can be dropped once we replace the (unmaintained) sodiumoxide crate.
           dnf install -y gcc make openssl-devel gzip git findutils diffutils
 
       - name: Checkout
@@ -216,7 +218,7 @@ jobs:
         env:
           PLATFORM: ${{ matrix.platform }}
           VERSION: ${{ github.event.release.tag_name }}
-        run: cargo generate-rpm -p crates/kr -o "akr_${VERSION}_${PLATFORM}.rpm"
+        run: cargo generate-rpm -p crates/kr -o "akr_${VERSION}_${PLATFORM}_x86_64.rpm"
 
       - name: Verify package
         run: |
