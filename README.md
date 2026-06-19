@@ -50,11 +50,13 @@ Commands:
 
 ## Requirements
 
-- macOS (Apple Silicon, 11+) or Linux (Debian, RHEL, and CentOS) on `x86_64` or `arm64`/`aarch64`.
+- macOS (Apple Silicon, 11+) or Linux (Ubuntu, RHEL, Rocky Linux, or CentOS Stream) on `x86_64`/`amd64` or `arm64`/`aarch64`.
 - OpenSSH Client and Server 8.2+
 - pinentry
 
 ## Installation instructions
+
+Packages are published from [akamai/akr-pkg](https://github.com/akamai/akr-pkg) (deb/rpm) and [akamai/homebrew-mfa](https://github.com/akamai/homebrew-mfa) (brew). Both `x86_64`/`amd64` and `aarch64`/`arm64` are supported; `apt` and `dnf` install the package matching your host architecture.
 
 ### macOS (brew)
 
@@ -63,54 +65,51 @@ brew install akamai/mfa/akr
 brew install pinentry-mac
 ```
 
-### Debian
+### Ubuntu
+
+Supported: 22.04, 24.04, 26.04. Replace `<VERSION>` with `22`, `24`, or `26`.
 
 ```sh
-curl -SsL https://akamai.github.io/akr-pkg/ubuntu/KEY.gpg | sudo apt-key add -
-sudo curl -SsL -o /etc/apt/sources.list.d/akr.list https://akamai.github.io/akr-pkg/ubuntu/akr.list
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -SsL https://akamai.github.io/akr-pkg/akr-keyring.gpg \
+  | sudo gpg --dearmor -o /etc/apt/keyrings/akr.gpg
+echo "deb [signed-by=/etc/apt/keyrings/akr.gpg] https://akamai.github.io/akr-pkg/ubuntu/<VERSION> ./" \
+  | sudo tee /etc/apt/sources.list.d/akr.list
 sudo apt update
 sudo apt install akr
 sudo apt install pinentry-tty
 ```
 
-### CentOS/RHEL
+### RHEL / Rocky Linux
+
+Supported: 8, 9, 10. Replace `<VERSION>` with `8`, `9`, or `10`.
 
 ```sh
-sudo vim /etc/yum.repos.d/akr.repo
-
+sudo tee /etc/yum.repos.d/akr.repo <<'EOF'
 [akr]
 name=akr repository
-baseurl=https://akamai.github.io/akr-pkg/rpm/
-gpgcheck=0
+baseurl=https://akamai.github.io/akr-pkg/rhel/<VERSION>/
+gpgcheck=1
+gpgkey=https://akamai.github.io/akr-pkg/akr-keyring.gpg
 enabled=1
-```
-
-```sh
-sudo yum -y update
-```
-
-```sh
+EOF
 sudo yum -y install akr
 sudo yum -y install pinentry-gtk
 ```
 
-### CentOS-9/RHEL-9
+### CentOS Stream
+
+Supported: 9, 10. Replace `<VERSION>` with `9` or `10`.
 
 ```sh
-sudo vim /etc/yum.repos.d/akr.repo
-
+sudo tee /etc/yum.repos.d/akr.repo <<'EOF'
 [akr]
 name=akr repository
-baseurl=https://akamai.github.io/akr-pkg/rpm-9/
-gpgcheck=0
+baseurl=https://akamai.github.io/akr-pkg/centos/<VERSION>/
+gpgcheck=1
+gpgkey=https://akamai.github.io/akr-pkg/akr-keyring.gpg
 enabled=1
-```
-
-```sh
-sudo yum -y update
-```
-
-```sh
+EOF
 sudo yum -y install akr
 sudo yum -y install pinentry-gtk
 ```
