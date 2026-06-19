@@ -7,72 +7,30 @@ on:
       - main
 
 jobs:
-  deb:
-    name: Deb package
+  ubuntu:
+    name: Ubuntu packages
     env:
       CARGO_DEB_VER: 2.12.0
       DEBIAN_FRONTEND: noninteractive
-      PKG_CONFIG_ALLOW_CROSS: 1
     strategy:
+      fail-fast: false
       matrix:
-        target:
-          - "x86_64-unknown-linux-gnu"
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Install common libs
-        run: |
-          sudo apt-get update
-          sudo apt-get install pkg-config libssl-dev lintian  libpqxx-dev libxmlsec1-dev libclang-dev
-
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Get Rust toolchain channel
-        run: |
-          echo "RUST_CHANNEL=$(sed -nrE 's/^channel = "(.*)"$/\1/p' "$GITHUB_WORKSPACE"/rust-toolchain.toml)" >> $GITHUB_ENV
-
-      - name: Install Rust ${{ env.RUST_CHANNEL }}
-        uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1 # v1
-        with:
-          toolchain: ${{ env.RUST_CHANNEL }}
-          targets: ${{ matrix.target }}
-
-      - name: Install Cargo Deb
-        run: cargo install cargo-deb --vers=${{ env.CARGO_DEB_VER }} --locked
-
-      - name: Create package
-        run: cargo deb -p akr --target=${{ matrix.target }}
-
-      - name: Verify package
-        run: |
-          # do not use exit codes while errors occured
-          lintian -v target/${{ matrix.target }}/debian/*.deb || true
-      
-      - name: Upload asset
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with: 
-          name: akr-deb
-          path: target/${{ matrix.target }}/debian/*.deb
-
-  rpm:
-    name: RPM package
-    env:
-      CARGO_GENERATE_RPM_VER: 0.16.1
-    strategy:
-      matrix:
-        image:
-          - "alvistack/centos-9-stream"
+        include:
+          - image: "ubuntu:22.04"
+            platform: "ubuntu22"
+          - image: "ubuntu:24.04"
+            platform: "ubuntu24"
+          - image: "ubuntu:26.04"
+            platform: "ubuntu26"
     runs-on: ubuntu-24.04
     container:
       image: ${{ matrix.image }}
 
     steps:
-      - name: Install libs on CentOS
-        if: ${{ startsWith(matrix.image, 'centos') }}
+      - name: Install common libs
         run: |
-          yum update -y && yum install -y epel-release && yum install -y gcc make cmake3 gcc-c++ openssl-devel gzip rpmlint
-          ln -s /usr/bin/cmake3 /usr/bin/cmake
+          apt-get update -y
+          apt-get install -y build-essential curl git pkg-config libssl-dev lintian libpqxx-dev libxmlsec1-dev libclang-dev
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -86,8 +44,152 @@ jobs:
         with:
           toolchain: ${{ env.RUST_CHANNEL }}
 
-      - name: Delete previous RPM
-        run: rm -f target/generate-rpm/*.rpm
+      - name: Install Cargo Deb
+        run: cargo install cargo-deb --vers=${{ env.CARGO_DEB_VER }} --locked
+
+      - name: Create package
+        run: cargo deb -p akr -o akr.deb
+
+      - name: Verify package
+        run: |
+          # do not use exit codes while errors occured
+          lintian -v akr.deb || true
+
+      - name: Upload asset
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: akr_${{ matrix.platform }}_amd64.deb
+          path: akr.deb
+
+  rhel:
+    name: RHEL-compatible packages (Rocky Linux)
+    env:
+      CARGO_GENERATE_RPM_VER: 0.16.1
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: "rockylinux/rockylinux:8"
+            platform: "rhel8"
+            repo: "powertools"
+          - image: "rockylinux/rockylinux:9"
+            platform: "rhel9"
+            repo: "crb"
+          - image: "rockylinux/rockylinux:10"
+            platform: "rhel10"
+            repo: "crb"
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ matrix.image }}
+
+    steps:
+      - name: Enable repositories
+        shell: sh
+        run: |
+          dnf install -y dnf-plugins-core epel-release
+          dnf config-manager --set-enabled ${{ matrix.repo }}
+          dnf clean all && dnf makecache
+
+      - name: Install common libs
+        shell: sh
+        run: |
+          # Don't install `curl` — `curl-minimal` is preinstalled and conflicts on RHEL 9+ images.
+          # `findutils` and `diffutils` aren't in the Rocky 8 minimal image; libtool's archive
+          # merging silently fails without `find`, leaving libsodium's SIMD .o files out of
+          # libsodium.a and causing make-check link errors.
+          # findutils + diffutils can be dropped once we replace the (unmaintained) sodiumoxide crate.
+          dnf install -y gcc make openssl-devel gzip rpmlint git findutils diffutils
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Get Rust toolchain channel
+        shell: sh
+        run: |
+          RUST_CHANNEL=$(sed -nrE 's/^channel = "(.*)"$/\1/p' "$GITHUB_WORKSPACE"/rust-toolchain.toml)
+          echo "RUST_CHANNEL=$RUST_CHANNEL" >> $GITHUB_ENV
+
+      - name: Install Rust via rustup
+        shell: sh
+        run: |
+          # Install rustup and Rust toolchain directly (avoids bash 5.x incompatibility with rust-toolchain action)
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain "$RUST_CHANNEL" --profile minimal
+          . "$HOME/.cargo/env"
+          rustc --version
+          cargo --version
+
+      - name: Install Cargo Generate RPM
+        shell: sh
+        run: |
+          . "$HOME/.cargo/env"
+          cargo install cargo-generate-rpm --vers=${{ env.CARGO_GENERATE_RPM_VER }} --locked
+
+      - name: Build binary
+        shell: sh
+        run: |
+          . "$HOME/.cargo/env"
+          cargo build --release
+
+      - name: Remove all symbol and relocation information
+        run: strip -s target/release/akr
+
+      - name: Add dist to release
+        run: dist=$(rpm --eval %{?dist}); sed -i -e 's/release = "\(.*\)"/release = "\1'$dist'"/g' Cargo.toml
+
+      - name: Create package
+        shell: sh
+        run: |
+          . "$HOME/.cargo/env"
+          cargo generate-rpm -p crates/kr -o akr.rpm
+
+      - name: Verify package
+        shell: sh
+        run: |
+          # do not use exit codes while errors occurred
+          rpmlint akr.rpm || true
+
+      - name: Upload RPM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: akr_${{ matrix.platform }}_x86_64.rpm
+          path: akr.rpm
+
+  centos:
+    name: CentOS Stream packages
+    env:
+      CARGO_GENERATE_RPM_VER: 0.16.1
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: "quay.io/centos/centos:stream9"
+            platform: "centos9"
+          - image: "quay.io/centos/centos:stream10"
+            platform: "centos10"
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ matrix.image }}
+
+    steps:
+      - name: Enable CRB and install packages
+        run: |
+          dnf install -y dnf-plugins-core epel-release
+          dnf config-manager --set-enabled crb || true
+          # Don't install `curl` — `curl-minimal` is preinstalled and conflicts on CentOS Stream 9+ images.
+          # findutils + diffutils can be dropped once we replace the (unmaintained) sodiumoxide crate.
+          dnf install -y gcc make openssl-devel gzip rpmlint git findutils diffutils
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Get Rust toolchain channel
+        run: |
+          echo "RUST_CHANNEL=$(sed -nrE 's/^channel = "(.*)"$/\1/p' "$GITHUB_WORKSPACE"/rust-toolchain.toml)" >> $GITHUB_ENV
+
+      - name: Install Rust ${{ env.RUST_CHANNEL }}
+        uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1 # v1
+        with:
+          toolchain: ${{ env.RUST_CHANNEL }}
 
       - name: Install Cargo Generate RPM
         run: cargo install cargo-generate-rpm --vers=${{ env.CARGO_GENERATE_RPM_VER }} --locked
@@ -102,15 +204,15 @@ jobs:
         run: dist=$(rpm --eval %{?dist}); sed -i -e 's/release = "\(.*\)"/release = "\1'$dist'"/g' Cargo.toml
 
       - name: Create package
-        run: cargo generate-rpm -p crates/kr
+        run: cargo generate-rpm -p crates/kr -o akr.rpm
 
       - name: Verify package
         run: |
           # do not use exit codes while errors occurred
-          rpmlint target/generate-rpm/akr-*.rpm || true
+          rpmlint akr.rpm || true
 
       - name: Upload RPM
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: akr-${{ matrix.image == 'alvistack/centos-9-stream' && 'centos-9-stream' || 'unknown' }}
-          path: target/generate-rpm/*.rpm
+          name: akr_${{ matrix.platform }}_x86_64.rpm
+          path: akr.rpm
