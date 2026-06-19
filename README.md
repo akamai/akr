@@ -50,7 +50,7 @@ Commands:
 
 ## Requirements
 
-- macOS (10.15+) or Linux (64 Bit) (Debian, RHEL, and CentOS).
+- macOS (Apple Silicon, 11+) or Linux (Debian, RHEL, and CentOS) on `x86_64` or `arm64`/`aarch64`.
 - OpenSSH Client and Server 8.2+
 - pinentry
 

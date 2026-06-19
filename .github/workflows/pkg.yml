@@ -17,13 +17,31 @@ jobs:
         include:
           - image: "ubuntu:22.04"
             platform: "ubuntu22"
+            arch: "amd64"
+            runner: "ubuntu-24.04"
+          - image: "ubuntu:22.04"
+            platform: "ubuntu22"
+            arch: "arm64"
+            runner: "ubuntu-24.04-arm"
           - image: "ubuntu:24.04"
             platform: "ubuntu24"
+            arch: "amd64"
+            runner: "ubuntu-24.04"
+          - image: "ubuntu:24.04"
+            platform: "ubuntu24"
+            arch: "arm64"
+            runner: "ubuntu-24.04-arm"
           - image: "ubuntu:26.04"
             platform: "ubuntu26"
+            arch: "amd64"
+            runner: "ubuntu-24.04"
+          - image: "ubuntu:26.04"
+            platform: "ubuntu26"
+            arch: "arm64"
+            runner: "ubuntu-24.04-arm"
     permissions:
       contents: write
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     container:
       image: ${{ matrix.image }}
 
@@ -51,8 +69,9 @@ jobs:
       - name: Create package
         env:
           PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.arch }}
           VERSION: ${{ github.event.release.tag_name }}
-        run: cargo deb -p akr -o "akr_${VERSION}_${PLATFORM}_amd64.deb"
+        run: cargo deb -p akr -o "akr_${VERSION}_${PLATFORM}_${ARCH}.deb"
 
       - name: Verify package
         run: |
@@ -76,15 +95,36 @@ jobs:
           - image: "rockylinux/rockylinux:8"
             platform: "rhel8"
             repo: "powertools"
+            arch: "x86_64"
+            runner: "ubuntu-24.04"
+          - image: "rockylinux/rockylinux:8"
+            platform: "rhel8"
+            repo: "powertools"
+            arch: "aarch64"
+            runner: "ubuntu-24.04-arm"
           - image: "rockylinux/rockylinux:9"
             platform: "rhel9"
             repo: "crb"
+            arch: "x86_64"
+            runner: "ubuntu-24.04"
+          - image: "rockylinux/rockylinux:9"
+            platform: "rhel9"
+            repo: "crb"
+            arch: "aarch64"
+            runner: "ubuntu-24.04-arm"
           - image: "rockylinux/rockylinux:10"
             platform: "rhel10"
             repo: "crb"
+            arch: "x86_64"
+            runner: "ubuntu-24.04"
+          - image: "rockylinux/rockylinux:10"
+            platform: "rhel10"
+            repo: "crb"
+            arch: "aarch64"
+            runner: "ubuntu-24.04-arm"
     permissions:
       contents: write
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     container:
       image: ${{ matrix.image }}
 
@@ -146,10 +186,11 @@ jobs:
         shell: sh
         env:
           PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.arch }}
           VERSION: ${{ github.event.release.tag_name }}
         run: |
           . "$HOME/.cargo/env"
-          cargo generate-rpm -p crates/kr -o "akr_${VERSION}_${PLATFORM}_x86_64.rpm"
+          cargo generate-rpm -p crates/kr -o "akr_${VERSION}_${PLATFORM}_${ARCH}.rpm"
 
       - name: Verify package
         shell: sh
@@ -173,11 +214,23 @@ jobs:
         include:
           - image: "quay.io/centos/centos:stream9"
             platform: "centos9"
+            arch: "x86_64"
+            runner: "ubuntu-24.04"
+          - image: "quay.io/centos/centos:stream9"
+            platform: "centos9"
+            arch: "aarch64"
+            runner: "ubuntu-24.04-arm"
           - image: "quay.io/centos/centos:stream10"
             platform: "centos10"
+            arch: "x86_64"
+            runner: "ubuntu-24.04"
+          - image: "quay.io/centos/centos:stream10"
+            platform: "centos10"
+            arch: "aarch64"
+            runner: "ubuntu-24.04-arm"
     permissions:
       contents: write
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     container:
       image: ${{ matrix.image }}
 
@@ -217,8 +270,9 @@ jobs:
       - name: Create package
         env:
           PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.arch }}
           VERSION: ${{ github.event.release.tag_name }}
-        run: cargo generate-rpm -p crates/kr -o "akr_${VERSION}_${PLATFORM}_x86_64.rpm"
+        run: cargo generate-rpm -p crates/kr -o "akr_${VERSION}_${PLATFORM}_${ARCH}.rpm"
 
       - name: Verify package
         run: |
