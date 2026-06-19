@@ -18,11 +18,29 @@ jobs:
         include:
           - image: "ubuntu:22.04"
             platform: "ubuntu22"
+            arch: "amd64"
+            runner: "ubuntu-24.04"
+          - image: "ubuntu:22.04"
+            platform: "ubuntu22"
+            arch: "arm64"
+            runner: "ubuntu-24.04-arm"
           - image: "ubuntu:24.04"
             platform: "ubuntu24"
+            arch: "amd64"
+            runner: "ubuntu-24.04"
+          - image: "ubuntu:24.04"
+            platform: "ubuntu24"
+            arch: "arm64"
+            runner: "ubuntu-24.04-arm"
           - image: "ubuntu:26.04"
             platform: "ubuntu26"
-    runs-on: ubuntu-24.04
+            arch: "amd64"
+            runner: "ubuntu-24.04"
+          - image: "ubuntu:26.04"
+            platform: "ubuntu26"
+            arch: "arm64"
+            runner: "ubuntu-24.04-arm"
+    runs-on: ${{ matrix.runner }}
     container:
       image: ${{ matrix.image }}
 
@@ -58,7 +76,7 @@ jobs:
       - name: Upload asset
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: akr_${{ matrix.platform }}_amd64.deb
+          name: akr_${{ matrix.platform }}_${{ matrix.arch }}.deb
           path: akr.deb
 
   rhel:
@@ -72,13 +90,34 @@ jobs:
           - image: "rockylinux/rockylinux:8"
             platform: "rhel8"
             repo: "powertools"
+            arch: "x86_64"
+            runner: "ubuntu-24.04"
+          - image: "rockylinux/rockylinux:8"
+            platform: "rhel8"
+            repo: "powertools"
+            arch: "aarch64"
+            runner: "ubuntu-24.04-arm"
           - image: "rockylinux/rockylinux:9"
             platform: "rhel9"
             repo: "crb"
+            arch: "x86_64"
+            runner: "ubuntu-24.04"
+          - image: "rockylinux/rockylinux:9"
+            platform: "rhel9"
+            repo: "crb"
+            arch: "aarch64"
+            runner: "ubuntu-24.04-arm"
           - image: "rockylinux/rockylinux:10"
             platform: "rhel10"
             repo: "crb"
-    runs-on: ubuntu-24.04
+            arch: "x86_64"
+            runner: "ubuntu-24.04"
+          - image: "rockylinux/rockylinux:10"
+            platform: "rhel10"
+            repo: "crb"
+            arch: "aarch64"
+            runner: "ubuntu-24.04-arm"
+    runs-on: ${{ matrix.runner }}
     container:
       image: ${{ matrix.image }}
 
@@ -151,7 +190,7 @@ jobs:
       - name: Upload RPM
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: akr_${{ matrix.platform }}_x86_64.rpm
+          name: akr_${{ matrix.platform }}_${{ matrix.arch }}.rpm
           path: akr.rpm
 
   centos:
@@ -164,9 +203,21 @@ jobs:
         include:
           - image: "quay.io/centos/centos:stream9"
             platform: "centos9"
+            arch: "x86_64"
+            runner: "ubuntu-24.04"
+          - image: "quay.io/centos/centos:stream9"
+            platform: "centos9"
+            arch: "aarch64"
+            runner: "ubuntu-24.04-arm"
           - image: "quay.io/centos/centos:stream10"
             platform: "centos10"
-    runs-on: ubuntu-24.04
+            arch: "x86_64"
+            runner: "ubuntu-24.04"
+          - image: "quay.io/centos/centos:stream10"
+            platform: "centos10"
+            arch: "aarch64"
+            runner: "ubuntu-24.04-arm"
+    runs-on: ${{ matrix.runner }}
     container:
       image: ${{ matrix.image }}
 
@@ -214,5 +265,5 @@ jobs:
       - name: Upload RPM
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: akr_${{ matrix.platform }}_x86_64.rpm
+          name: akr_${{ matrix.platform }}_${{ matrix.arch }}.rpm
           path: akr.rpm
