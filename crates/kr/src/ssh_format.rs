@@ -50,7 +50,7 @@ impl SshFido2KeyPairHandle {
             "{} {} {}",
             Self::TYPE_ID,
             Base64Buffer(wire),
-            &self.application
+            self.application
         ))
     }
 
@@ -400,7 +400,7 @@ impl PrivateKey {
         if flags.contains(SignFlags::SSH_AGENT_RSA_SHA2_256)
             && flags.contains(SignFlags::SSH_AGENT_RSA_SHA2_512)
         {
-            return Err(Error::IllegalFlags)?;
+            Err(Error::IllegalFlags)?;
         }
 
         let (algo_name, digest_type) = if flags.contains(SignFlags::SSH_AGENT_RSA_SHA2_256) {
