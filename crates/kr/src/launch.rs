@@ -120,7 +120,7 @@ impl SystemdService {
         let path = dirs.home_dir().join(".config").join("systemd").join("user");
         std::fs::create_dir_all(&path)?;
 
-        let service_name = format!("{}.service", &self.bin_name);
+        let service_name = format!("{}.service", self.bin_name);
 
         let path_to_write = path.clone().join(&service_name);
         let contents = self.render()?;
