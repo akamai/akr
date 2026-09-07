@@ -15,6 +15,7 @@ updates:
   - package-ecosystem: "cargo"
     directory: "/"
     rebase-strategy: "disabled"
+    versioning-strategy: "increase"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
