@@ -7,7 +7,7 @@ on:
 
 jobs:
   ubuntu:
-    name: Ubuntu packages
+    name: Ubuntu packages (${{ matrix.platform }}, ${{ matrix.arch }})
     env:
       CARGO_DEB_VER: 2.12.0
       DEBIAN_FRONTEND: noninteractive
@@ -85,7 +85,7 @@ jobs:
           files: akr_*.deb
 
   rhel:
-    name: RHEL-compatible packages (Rocky Linux)
+    name: RHEL-compatible packages (Rocky Linux) (${{ matrix.platform }}, ${{ matrix.arch }})
     env:
       CARGO_GENERATE_RPM_VER: 0.16.1
     strategy:
@@ -205,7 +205,7 @@ jobs:
           files: akr_*.rpm
 
   centos:
-    name: CentOS Stream packages
+    name: CentOS Stream packages (${{ matrix.platform }}, ${{ matrix.arch }})
     env:
       CARGO_GENERATE_RPM_VER: 0.16.1
     strategy:
