@@ -8,7 +8,7 @@ on:
 
 jobs:
   ubuntu:
-    name: Ubuntu packages
+    name: Ubuntu packages (${{ matrix.platform }}, ${{ matrix.arch }})
     env:
       CARGO_DEB_VER: 2.12.0
       DEBIAN_FRONTEND: noninteractive
@@ -19,27 +19,27 @@ jobs:
           - image: "ubuntu:22.04"
             platform: "ubuntu22"
             arch: "amd64"
-            runner: "ubuntu-24.04"
+            runner: "ubuntu-26.04"
           - image: "ubuntu:22.04"
             platform: "ubuntu22"
             arch: "arm64"
-            runner: "ubuntu-24.04-arm"
+            runner: "ubuntu-26.04-arm"
           - image: "ubuntu:24.04"
             platform: "ubuntu24"
             arch: "amd64"
-            runner: "ubuntu-24.04"
+            runner: "ubuntu-26.04"
           - image: "ubuntu:24.04"
             platform: "ubuntu24"
             arch: "arm64"
-            runner: "ubuntu-24.04-arm"
+            runner: "ubuntu-26.04-arm"
           - image: "ubuntu:26.04"
             platform: "ubuntu26"
             arch: "amd64"
-            runner: "ubuntu-24.04"
+            runner: "ubuntu-26.04"
           - image: "ubuntu:26.04"
             platform: "ubuntu26"
             arch: "arm64"
-            runner: "ubuntu-24.04-arm"
+            runner: "ubuntu-26.04-arm"
     runs-on: ${{ matrix.runner }}
     container:
       image: ${{ matrix.image }}
@@ -80,7 +80,7 @@ jobs:
           path: akr.deb
 
   rhel:
-    name: RHEL-compatible packages (Rocky Linux)
+    name: RHEL-compatible packages (Rocky Linux) (${{ matrix.platform }}, ${{ matrix.arch }})
     env:
       CARGO_GENERATE_RPM_VER: 0.16.1
     strategy:
@@ -91,32 +91,32 @@ jobs:
             platform: "rhel8"
             repo: "powertools"
             arch: "x86_64"
-            runner: "ubuntu-24.04"
+            runner: "ubuntu-26.04"
           - image: "rockylinux/rockylinux:8"
             platform: "rhel8"
             repo: "powertools"
             arch: "aarch64"
-            runner: "ubuntu-24.04-arm"
+            runner: "ubuntu-26.04-arm"
           - image: "rockylinux/rockylinux:9"
             platform: "rhel9"
             repo: "crb"
             arch: "x86_64"
-            runner: "ubuntu-24.04"
+            runner: "ubuntu-26.04"
           - image: "rockylinux/rockylinux:9"
             platform: "rhel9"
             repo: "crb"
             arch: "aarch64"
-            runner: "ubuntu-24.04-arm"
+            runner: "ubuntu-26.04-arm"
           - image: "rockylinux/rockylinux:10"
             platform: "rhel10"
             repo: "crb"
             arch: "x86_64"
-            runner: "ubuntu-24.04"
+            runner: "ubuntu-26.04"
           - image: "rockylinux/rockylinux:10"
             platform: "rhel10"
             repo: "crb"
             arch: "aarch64"
-            runner: "ubuntu-24.04-arm"
+            runner: "ubuntu-26.04-arm"
     runs-on: ${{ matrix.runner }}
     container:
       image: ${{ matrix.image }}
@@ -194,7 +194,7 @@ jobs:
           path: akr.rpm
 
   centos:
-    name: CentOS Stream packages
+    name: CentOS Stream packages (${{ matrix.platform }}, ${{ matrix.arch }})
     env:
       CARGO_GENERATE_RPM_VER: 0.16.1
     strategy:
@@ -204,19 +204,19 @@ jobs:
           - image: "quay.io/centos/centos:stream9"
             platform: "centos9"
             arch: "x86_64"
-            runner: "ubuntu-24.04"
+            runner: "ubuntu-26.04"
           - image: "quay.io/centos/centos:stream9"
             platform: "centos9"
             arch: "aarch64"
-            runner: "ubuntu-24.04-arm"
+            runner: "ubuntu-26.04-arm"
           - image: "quay.io/centos/centos:stream10"
             platform: "centos10"
             arch: "x86_64"
-            runner: "ubuntu-24.04"
+            runner: "ubuntu-26.04"
           - image: "quay.io/centos/centos:stream10"
             platform: "centos10"
             arch: "aarch64"
-            runner: "ubuntu-24.04-arm"
+            runner: "ubuntu-26.04-arm"
     runs-on: ${{ matrix.runner }}
     container:
       image: ${{ matrix.image }}
